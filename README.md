@@ -18,9 +18,13 @@ Người trong nhà chỉ cần một đường link. Họ bấm **Thêm ngườ
 
 ### Bước 1. Tạo Google Sheet
 
-Mở [sheets.new](https://sheets.new), đặt tên tab dưới cùng là `GiaPha`, rồi mở `mau-gia-pha.csv` bằng Notepad, chép dòng đầu tiên và dán vào hàng 1 của Sheet.
+Mở [sheets.new](https://sheets.new). Thế là xong, một file trống là đủ.
 
-Nếu bỏ qua bước dán tiêu đề cũng được. Apps Script ở bước sau sẽ tự tạo đúng 15 cột.
+Không cần kẻ bảng hay gõ tiêu đề. Ngay lần đầu trang web gọi tới, Apps Script tự tạo hai tab và tự điền dòng tiêu đề: `GiaPha` chứa thông tin từng người, `TaiKhoan` chứa tài khoản và nhánh được giao. Nó cũng tự đặt định dạng ô về văn bản thuần để `05/09/1950` không bị đổi thành ngày tháng.
+
+File mới luôn có sẵn một tab tên `Trang tính1` mà script không dùng tới. Đổi tên nó thành `GiaPha` ngay từ đầu, hoặc cứ để đó rồi xóa sau, đều được.
+
+Chỉ dùng tới `mau-gia-pha.csv` khi bạn muốn nhập sẵn một loạt người bằng cách dán thẳng vào bảng, thay vì gõ từng người qua form trên web.
 
 ### Bước 2. Dựng cổng ghi
 
@@ -161,6 +165,8 @@ Tab `TaiKhoan` nằm chung file Sheet với gia phả. Nếu bạn chia sẻ fil
 ## Khi có trục trặc
 
 **Trang báo không đọc được Google Sheet.** Sheet chưa được chia sẻ. Bấm Chia sẻ, đổi thành *Bất kỳ ai có đường liên kết · Người xem*. Cách này chỉ cần khi bạn dùng chế độ chỉ xem bằng ID Sheet. Dùng cổng ghi thì không cần chia sẻ Sheet.
+
+**Báo `Unexpected token '<'` hoặc nói địa chỉ trả về một trang web.** Bạn đã dán địa chỉ file Google Sheet vào ô cổng ghi. Hai địa chỉ đó khác nhau. Địa chỉ Sheet bắt đầu bằng `docs.google.com/spreadsheets`, còn cổng ghi bắt đầu bằng `script.google.com` và kết thúc bằng `/exec`. Cổng ghi chỉ có sau khi bạn dán mã vào Apps Script và bấm Triển khai.
 
 **Bấm lưu báo lỗi kết nối.** Kiểm tra hai điểm: đường dẫn phải kết thúc bằng `/exec` chứ không phải `/dev`, và quyền truy cập phải là *Bất kỳ ai*. Mỗi lần sửa script phải **Triển khai lại** thì thay đổi mới có hiệu lực.
 

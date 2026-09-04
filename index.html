@@ -399,6 +399,12 @@ dl.facts dd.note{font-size:13px;color:var(--ink-2);line-height:1.55;grid-column:
 .chi-list s{text-decoration:none;font-size:11.5px;color:var(--ink-3);font-variant-numeric:tabular-nums}
 .tag.chi{border-color:var(--chi);color:var(--chi)}
 
+/* thông báo sai đường dẫn trong hộp cài đặt */
+.setup-err{
+  background:var(--accent-soft);border:1px solid var(--accent);border-radius:9px;
+  padding:11px 13px;margin-bottom:15px;font-size:13px;line-height:1.6;color:var(--ink);
+}
+
 /* tài khoản */
 .acct-list{display:flex;flex-direction:column;gap:1px;background:var(--line);border:1px solid var(--line);border-radius:10px;overflow:hidden}
 .acct{background:var(--surface);padding:11px 13px;display:grid;grid-template-columns:1fr auto;gap:3px 10px;align-items:center}
@@ -1450,9 +1456,19 @@ var Api={
       method:"POST",
       headers:{"Content-Type":"text/plain;charset=utf-8"},
       body:JSON.stringify(body)
-    }).then(function(r){ return r.json(); }).then(function(j){
-      if(!j||j.ok!==true) throw new Error((j&&j.error)||"Máy chủ trả về lỗi không rõ.");
+    }).then(function(r){ return r.text(); }).then(function(txt){
+      var j;
+      try{ j=JSON.parse(txt); }
+      catch(e){
+        if(/^\s*</.test(txt)) throw new Error(
+          "Địa chỉ này trả về một trang web chứ không phải cổng ghi. Nhiều khả năng bạn đã dán địa chỉ file Google Sheet. "+
+          "Cổng ghi là đường dẫn do Apps Script sinh ra sau khi triển khai, kết thúc bằng /exec.");
+        throw new Error("Cổng ghi trả về dữ liệu không đọc được.");
+      }
+      if(!j||j.ok!==true) throw new Error((j&&j.error)||"Cổng ghi báo lỗi không rõ.");
       return j;
+    },function(err){
+      throw new Error("Không gọi tới được cổng ghi. Kiểm tra lại đường dẫn, và khi triển khai phải chọn quyền truy cập là Bất kỳ ai.");
     });
   },
   authState:function(){ return this.call("auth_state"); },
@@ -1665,7 +1681,14 @@ function openSetup(){
       b.appendChild(warn);
     }
 
-    f=field(b,"Đường dẫn cổng ghi (Google Apps Script)","cho phép thêm & sửa ngay trên trang");
+    var err=el("div","setup-err"); err.hidden=true; b.appendChild(err);
+    b._err=function(msg){
+      err.hidden=!msg;
+      err.textContent=msg||"";
+      if(msg) err.scrollIntoView({block:"nearest"});
+    };
+
+    f=field(b,"Đường dẫn cổng ghi (Google Apps Script)","địa chỉ Apps Script sinh ra sau khi triển khai, kết thúc bằng /exec");
     var iScript=el("input"); iScript.type="url"; iScript.placeholder="https://script.google.com/macros/s/.../exec";
     iScript.value=cfg.scriptUrl||""; f.appendChild(iScript);
 
@@ -1716,6 +1739,28 @@ function openSetup(){
     });
     b.appendChild(ol);
 
+    /* Bắt hai lỗi hay gặp nhất: dán nhầm địa chỉ Sheet, và dùng bản /dev. */
+    b._validate=function(){
+      var v=iScript.value.trim();
+      if(!v) return "";
+      if(/docs\.google\.com\/spreadsheets/i.test(v)){
+        if(!iId.value.trim()) iId.value=extractId(v);
+        iScript.value="";
+        return "Ô trên cùng đang là địa chỉ file Google Sheet. Tôi đã chuyển nó xuống ô ID của Google Sheet, "+
+               "chế độ đó chỉ xem chứ không sửa được. Muốn thêm và sửa ngay trên trang thì cần dựng Apps Script "+
+               "trong chính file Sheet đó, triển khai dạng ứng dụng web, rồi dán đường dẫn kết thúc bằng /exec vào đây. "+
+               "Các bước nằm ở mục Cách dựng trong 15 phút phía dưới.";
+      }
+      if(!/script\.google\.com/i.test(v)){
+        return "Cổng ghi phải là một địa chỉ script.google.com. Hãy chép lại ở mục Triển khai trong Apps Script.";
+      }
+      if(!/\/exec$/i.test(v.replace(/[?#].*$/,""))){
+        return "Đường dẫn cổng ghi phải kết thúc bằng /exec. Nếu nó kết thúc bằng /dev thì đó là bản thử nghiệm, "+
+               "chỉ mình bạn dùng được. Vào Triển khai rồi chép lại địa chỉ của bản triển khai.";
+      }
+      return "";
+    };
+
     b._read=function(){
       return {
         scriptUrl:iScript.value.trim(),
@@ -1731,8 +1776,11 @@ function openSetup(){
     var cancel=el("button","btn","Đóng"); cancel.onclick=close; mf.appendChild(cancel);
     var ok=el("button","btn pri","Lưu & tải lại");
     ok.onclick=function(){
-      var c=$(".modal .mb")._read();
-      saveCfg(c); close(); location.reload();
+      var mb=$(".modal .mb");
+      var msg=mb._validate();
+      if(msg){ mb._err(msg); return; }
+      mb._err("");
+      saveCfg(mb._read()); close(); location.reload();
     };
     mf.appendChild(ok);
   },true);
