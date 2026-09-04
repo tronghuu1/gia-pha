@@ -1,0 +1,5 @@
+﻿# ban xem thu sinh tu index.html, khong can dua len git
+.preview/
+
+# du lieu that cua gia dinh, neu ban tai ve de xem offline
+data.csv

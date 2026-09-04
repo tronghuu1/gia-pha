@@ -1,0 +1,11 @@
+id,ho_ten,ten_thuong_goi,gioi_tinh,nam_sinh,nam_mat,ngay_gio,anh,cha_id,me_id,vo_chong_id,vai_tro,que_quan,noi_an_tang,ghi_chu
+1,Nguyễn Văn Đại,,Nam,1918,12/03/1996,,,,,2,Thuỷ tổ,Duy Tiên - Hà Nam,Nghĩa trang họ Nguyễn,Người khai lập chi họ tại Duy Tiên
+2,Trần Thị Nhàn,,Nữ,1922,05/08/2001,,,,,1,,Duy Tiên - Hà Nam,Nghĩa trang họ Nguyễn,
+3,Nguyễn Văn Hùng,,Nam,1945,20/11/2018,,,1,2,4,Trưởng chi,,,
+4,Lê Thị Mai,,Nữ,1948,,,,,,3,,,,
+5,Nguyễn Thị Lan,,Nữ,1950,,,,1,2,6,,,,
+6,Phạm Văn Tú,,Nam,1946,1999,,,,,5,,,,
+7,Nguyễn Văn Trọng,,Nam,1972,,,,3,4,8,,,,
+8,Vũ Thị Hoa,,Nữ,1975,,,,,,7,,,,
+9,Nguyễn Minh Khôi,,Nam,2001,,,,7,8,,,,,
+10,Nguyễn Bảo Anh,,Nữ,2005,,,,7,8,,,,,
