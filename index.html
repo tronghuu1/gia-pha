@@ -1452,11 +1452,22 @@ var Api={
   get on(){ return !!this.url; },
   call:function(action,payload){
     var body=Object.assign({action:action,token:this.token},payload||{});
+    var ctl=(typeof AbortController!=="undefined")?new AbortController():null;
+    var timer=ctl?setTimeout(function(){ ctl.abort(); },75000):0;
     return fetch(this.url,{
       method:"POST",
       headers:{"Content-Type":"text/plain;charset=utf-8"},
-      body:JSON.stringify(body)
-    }).then(function(r){ return r.text(); }).then(function(txt){
+      body:JSON.stringify(body),
+      signal:ctl?ctl.signal:undefined
+    }).then(function(r){
+      clearTimeout(timer);
+      return r.text();
+    },function(e){
+      clearTimeout(timer);
+      if(e&&e.name==="AbortError") throw new Error(
+        "Cổng ghi không trả lời sau 75 giây. Việc có thể đã chạy xong ở phía Google, hãy tải lại trang và kiểm tra trước khi làm lại.");
+      throw new Error("Không gọi tới được cổng ghi. Kiểm tra lại đường dẫn, và khi triển khai phải chọn quyền truy cập là Bất kỳ ai.");
+    }).then(function(txt){
       var j;
       try{ j=JSON.parse(txt); }
       catch(e){
@@ -1467,8 +1478,6 @@ var Api={
       }
       if(!j||j.ok!==true) throw new Error((j&&j.error)||"Cổng ghi báo lỗi không rõ.");
       return j;
-    },function(err){
-      throw new Error("Không gọi tới được cổng ghi. Kiểm tra lại đường dẫn, và khi triển khai phải chọn quyền truy cập là Bất kỳ ai.");
     });
   },
   authState:function(){ return this.call("auth_state"); },
@@ -1606,6 +1615,7 @@ function loadScript(){
   return Api.list().then(function(j){
     var people=(j.rows||[]).map(function(r){ var o=normalize(r); o._row=r._row; return o; });
     State.sheetUrl=j.sheetUrl||"";
+    if(typeof j.needsSetup==="boolean") Session.needsSetup=j.needsSetup;
     if(j.account) setSession(j.account);
     else if(Api.token){ saveToken(""); setSession(null); }
     setPeople(people,"script");
@@ -1836,9 +1846,14 @@ function openLogin(){
     var c=el("button","btn","Hủy"); c.onclick=close; mf.appendChild(c);
     var ok=el("button","btn pri",setup?"Tạo tài khoản":"Đăng nhập");
     ok.onclick=function(){
+      var label=setup?"Tạo tài khoản":"Đăng nhập";
       ok.disabled=true; ok.textContent="Đang xử lý…";
+      /* Lượt gọi đầu tiên trong ngày phải chờ Google khởi động script. */
+      var t1=setTimeout(function(){ ok.textContent="Google đang khởi động…"; },8000);
+      var t2=setTimeout(function(){ ok.textContent="Vẫn đang chờ, đừng bấm lại…"; },25000);
       $(".modal .mb")._submit(function(keep){
-        if(keep){ ok.disabled=false; ok.textContent=setup?"Tạo tài khoản":"Đăng nhập"; }
+        clearTimeout(t1); clearTimeout(t2);
+        if(keep){ ok.disabled=false; ok.textContent=label; }
         else close();
       });
     };
@@ -2332,13 +2347,10 @@ function boot(){
   try{ Api.token=localStorage.getItem(TOKKEY)||""; }catch(e){ Api.token=""; }
   if(CONFIG.sheetId&&!cfg.sheetId&&!Api.on){ cfg.sheetId=CONFIG.sheetId; cfg.sheetName=CONFIG.sheetName; }
 
-  if(Api.on){
-    Api.authState()
-      .then(function(s){ Session.needsSetup=!!s.needsSetup; })
-      .catch(function(){})
-      .then(function(){ return loadScript(); });
-    return;
-  }
+  /* Một lượt gọi duy nhất lúc mở trang: danh sách người, phiên đăng nhập và
+     tình trạng tài khoản về cùng một lần. Apps Script xếp hàng các lượt gọi
+     nên gọi ít đi là trang mở nhanh hẳn. */
+  if(Api.on){ loadScript(); return; }
   if(cfg.sheetId){ loadSheet(cfg.sheetId,cfg.sheetName||"GiaPha"); return; }
   if(cfg.paste){
     try{ setPeople(rowsToPeople(parseCSV(cfg.paste)),"paste"); return; }

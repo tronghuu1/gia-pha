@@ -90,7 +90,14 @@ function doPost(e) {
 
     if (action === 'list') {
       if (REQUIRE_LOGIN_TO_VIEW && !me) return json({ ok: false, error: 'Cần đăng nhập để xem gia phả.' });
-      return json({ ok: true, rows: list_(getSheet_()), sheetUrl: sheetUrl_(), account: me ? publicAccount_(me) : null });
+      // Trả luôn tình trạng tài khoản để trang chỉ phải gọi một lượt lúc mở.
+      return json({
+        ok: true,
+        rows: list_(getSheet_()),
+        sheetUrl: sheetUrl_(),
+        account: me ? publicAccount_(me) : null,
+        needsSetup: listAccounts_().length === 0
+      });
     }
 
     // Từ đây trở xuống bắt buộc đăng nhập
@@ -351,9 +358,8 @@ function writeAccount_(acc, plainPass) {
   }
 
   var line = ACOLS.map(function (c) { return String(acc[c[1]] == null ? '' : acc[c[1]]); });
-  var row = findAccountRow_(sh, acc.user);
-  if (!row) row = sh.getLastRow() + 1;
-  sh.getRange(row, 1, 1, ACOLS.length).setValues([line]);
+  var row = findAccountRow_(sh, acc.user) || (sh.getLastRow() + 1);
+  writeRow_(sh, row, ACOLS, line);
 
   acc._row = row;
   return acc;
@@ -445,7 +451,7 @@ function save_(sh, person) {
 
   var line = COLS.map(function (c) { return String(person[c[1]] == null ? '' : person[c[1]]); });
   var row = findRow_(sh, id) || (sh.getLastRow() + 1);
-  sh.getRange(row, 1, 1, COLS.length).setValues([line]);
+  writeRow_(sh, row, COLS, line);
 
   syncSpouses_(sh, id, String(person.spouse || ''));
   return id;
@@ -529,9 +535,18 @@ function folder_() {
 function getSheet_()        { return ensureSheet_(SHEET_NAME, COLS); }
 function getAccountSheet_()  { return ensureSheet_(ACCOUNT_SHEET, ACOLS); }
 
+/* Mỗi lần chạy chỉ dựng bảng một lần. Trước đây hàm này định dạng lại toàn bộ
+   1000 dòng ở mọi lượt gọi, khiến việc lập tài khoản chờ hàng chục giây. */
+var _sheetCache = {};
+
 function ensureSheet_(name, cols) {
+  if (_sheetCache[name]) return _sheetCache[name];
+
   var ss = SpreadsheetApp.getActiveSpreadsheet();
-  var sh = ss.getSheetByName(name) || ss.insertSheet(name);
+  var sh = ss.getSheetByName(name);
+  var fresh = false;
+
+  if (!sh) { sh = ss.insertSheet(name); fresh = true; }
 
   var head = cols.map(function (c) { return c[0]; });
   var first = sh.getRange(1, 1, 1, cols.length).getDisplayValues()[0];
@@ -540,11 +555,22 @@ function ensureSheet_(name, cols) {
     sh.getRange(1, 1, 1, cols.length).setValues([head]);
     sh.getRange(1, 1, 1, cols.length).setFontWeight('bold');
     sh.setFrozenRows(1);
+    fresh = true;
   }
 
-  // Giữ mọi ô ở dạng văn bản, nếu không Sheet tự đổi 05/09/1950 thành ngày tháng.
-  sh.getRange(1, 1, sh.getMaxRows(), cols.length).setNumberFormat('@');
+  // Giữ ô ở dạng văn bản để Sheet không đổi 05/09/1950 thành ngày tháng.
+  // Chỉ quét cả bảng đúng lúc mới dựng; sau đó chỉ đặt trên hàng vừa ghi.
+  if (fresh) sh.getRange(1, 1, sh.getMaxRows(), cols.length).setNumberFormat('@');
+
+  _sheetCache[name] = sh;
   return sh;
+}
+
+/* Ghi một hàng, đặt định dạng văn bản cho đúng hàng đó rồi mới đổ giá trị. */
+function writeRow_(sh, row, cols, values) {
+  var rng = sh.getRange(row, 1, 1, cols.length);
+  rng.setNumberFormat('@');
+  rng.setValues([values]);
 }
 
 function findRow_(sh, id) {
