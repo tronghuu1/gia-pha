@@ -346,6 +346,45 @@ group('10. Kiem tra duong dan cong ghi');
   ok(mb._validate() === '', 'de trong thi khong bao gi');
 })();
 
+/* ---------- 11e. cách phân biệt nam, nữ, đã mất ---------- */
+group('11e. Phan biet nam nu da mat');
+(function () {
+  A.setPeople(A.DEMO.map(A.normalize), 'demo');
+
+  var namSong = A.State.byId.get('7');   // Nguyễn Văn Bình, nam, còn sống
+  var nuSong  = A.State.byId.get('4');   // Lê Thị Mai, nữ, còn sống
+  var namMat  = A.State.byId.get('1');   // Nguyễn Văn Đại, nam, đã mất
+  var nuMat   = A.State.byId.get('2');   // Trần Thị Nhàn, nữ, đã mất
+
+  eq(A.ring(namSong), 'var(--male)', 'nam con song mang mau nam');
+  eq(A.ring(nuSong), 'var(--female)', 'nu con song mang mau nu');
+  eq(A.ring(namMat), 'var(--male)', 'nam da mat van mang mau nam');
+  eq(A.ring(nuMat), 'var(--female)', 'nu da mat van mang mau nu, khong bi nuot mat gioi tinh');
+  ok(A.ring(nuMat) !== 'var(--gold)', 'vong quanh anh khong con bi dung de bao da mat');
+
+  eq(A.sexGlyph(namSong), '♂', 'ky hieu nam');
+  eq(A.sexGlyph(nuSong), '♀', 'ky hieu nu');
+  eq(A.sexGlyph(A.normalize({ id: 'x', name: 'Chua ro' })), '', 'chua khai gioi tinh thi khong ve ky hieu');
+
+  var card = env.dom.document.querySelector('#cards .card[data-id="2"]');
+  ok(!!card, 'tim thay the cua nguoi da mat');
+  ok(card.classList.contains('gone'), 'the nguoi da mat co lop rieng de doi nen va dai tang');
+  var live = env.dom.document.querySelector('#cards .card[data-id="4"]');
+  ok(!live.classList.contains('gone'), 'the nguoi con song khong co lop do');
+
+  var av = card.querySelector('.ava');
+  ok(!!av, 'the co vung anh dai dien');
+  eq(av.style['--ring'], 'var(--female)', 'vung anh nhan mau nu');
+  var sex = av.querySelector('.sex');
+  ok(!!sex && sex.textContent === '♀', 'co huy hieu gioi tinh tren anh');
+  ok(!!av.querySelector('.ph'), 'anh nam trong lop bo trong rieng de bo huy hieu ra ngoai');
+
+  var yr = card.querySelector('.yr');
+  ok(!!yr.querySelector('.cross'), 'nam mat co dau chu thap di kem');
+  ok(yr.textContent.indexOf('1922') >= 0 && yr.textContent.indexOf('2001') >= 0, 'hien du nam sinh va nam mat');
+  ok(!live.querySelector('.yr .cross'), 'nguoi con song khong co dau chu thap');
+})();
+
 /* ---------- 11d. xuất bản in ---------- */
 group('11d. Xuat ban in va PDF');
 (function () {

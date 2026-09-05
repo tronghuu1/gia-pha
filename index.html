@@ -6,7 +6,7 @@
 <title>Gia Phả Việt</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Be+Vietnam+Pro:wght@400;500;600;700&family=Faustina:ital,wght@0,400;0,500;0,600;0,700;1,400&display=swap">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Be+Vietnam+Pro:wght@400;500;600;700&family=Literata:ital,opsz,wght@0,7..72,400;0,7..72,600;0,7..72,700;1,7..72,400&display=swap">
 <style>
 /* ================= tokens ================= */
 :root{
@@ -23,15 +23,16 @@
   --accent-soft:#F3DFDB;
   --gold:#8E7126;
   --gold-line:#CBB784;
-  --male:#3A5A76;
-  --female:#96405C;
+  --male:#1668B0;
+  --female:#C2185B;
+  --surface-gone:#ECE6DC;
   --ok:#3F6B4A;
   --warn:#8A6212;
   --shadow-1:0 1px 2px rgba(50,34,24,.07);
   --shadow-2:0 1px 2px rgba(50,34,24,.06),0 10px 24px -14px rgba(50,34,24,.35);
   --shadow-3:0 24px 60px -20px rgba(40,26,18,.38),0 2px 8px rgba(40,26,18,.10);
   --r:10px;
-  --serif:"Faustina",Georgia,"Times New Roman",serif;
+  --serif:"Literata",Georgia,"Times New Roman",serif;
   --sans:"Be Vietnam Pro",-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;
 }
 @media (prefers-color-scheme:dark){
@@ -49,8 +50,9 @@
     --accent-soft:#3B211D;
     --gold:#C9A24A;
     --gold-line:#6E5829;
-    --male:#84AAC9;
-    --female:#D98EA6;
+    --male:#7CB8E8;
+    --female:#F0789F;
+    --surface-gone:#2A211C;
     --ok:#78AE86;
     --warn:#D6AC57;
     --shadow-1:0 1px 2px rgba(0,0,0,.5);
@@ -61,7 +63,7 @@
 :root[data-theme="dark"]{
   --bg:#141010; --surface:#1E1816; --surface-2:#251E1A; --ink:#EFE7DC; --ink-2:#B8A899;
   --ink-3:#8B7C6F; --line:#352B25; --line-2:#2A221D; --accent:#E4675A; --accent-ink:#1B0F0C;
-  --accent-soft:#3B211D; --gold:#C9A24A; --gold-line:#6E5829; --male:#84AAC9; --female:#D98EA6;
+  --accent-soft:#3B211D; --gold:#C9A24A; --gold-line:#6E5829; --male:#7CB8E8; --female:#F0789F; --surface-gone:#2A211C;
   --ok:#78AE86; --warn:#D6AC57;
   --shadow-1:0 1px 2px rgba(0,0,0,.5);
   --shadow-2:0 1px 2px rgba(0,0,0,.45),0 10px 24px -14px rgba(0,0,0,.8);
@@ -177,25 +179,48 @@ img{max-width:100%}
 .card.dim{opacity:.2}
 .card.hit{animation:pulse 1.2s ease-out 1}
 @keyframes pulse{0%{box-shadow:0 0 0 0 var(--accent-soft)}55%{box-shadow:0 0 0 16px transparent}100%{box-shadow:0 0 0 0 transparent}}
+/* Vòng quanh ảnh chỉ làm một việc: báo giới tính. Kể cả người đã mất. */
 .ava{
   width:62px;height:62px;border-radius:50%;flex:0 0 auto;position:relative;
-  background:var(--surface-2);display:grid;place-items:center;overflow:hidden;
+  background:var(--surface-2);display:grid;place-items:center;
   box-shadow:0 0 0 2px var(--surface),0 0 0 3.5px var(--ring,var(--ink-3));
 }
+.ava .ph{position:absolute;inset:0;border-radius:50%;overflow:hidden;display:grid;place-items:center}
 .ava img{width:100%;height:100%;object-fit:cover;display:block}
-.ava span{font-family:var(--serif);font-size:22px;font-weight:600;color:var(--ring,var(--ink-3))}
-.card.gone .ava img{filter:grayscale(.55) contrast(.95)}
+.ava .ini{font-family:var(--serif);font-size:22px;font-weight:600;color:var(--ring,var(--ink-3))}
+/* Ký hiệu giới tính, để người khó phân biệt màu vẫn đọc được */
+.ava .sex{
+  position:absolute;right:-3px;bottom:-3px;width:17px;height:17px;border-radius:50%;
+  background:var(--ring,var(--ink-3));color:#fff;
+  display:grid;place-items:center;font-size:10px;line-height:1;
+  box-shadow:0 0 0 2px var(--surface);
+}
+.card.gone .ava .ph img{filter:grayscale(1) contrast(.92) opacity(.85)}
+
 .card .nm{
-  font-family:var(--serif);font-size:14.5px;font-weight:600;line-height:1.25;
-  margin-top:9px;
+  font-family:var(--serif);font-size:15px;font-weight:600;line-height:1.22;
+  margin-top:10px;letter-spacing:-.005em;
   display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;
 }
-.card .yr{font-size:11.5px;color:var(--ink-3);margin-top:auto;padding-top:5px;font-variant-numeric:tabular-nums}
+.card .yr{
+  font-size:12px;color:var(--ink-2);margin-top:auto;padding-top:5px;
+  font-variant-numeric:tabular-nums;
+}
 .card .rl{
   font-size:9.5px;letter-spacing:.09em;text-transform:uppercase;color:var(--gold);
   font-weight:600;margin-top:3px;max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;
 }
-.card .cross{position:absolute;top:6px;right:9px;font-size:12px;color:var(--gold);line-height:1}
+
+/* Đã mất: đổi nền, thêm dải tang ở đáy, năm mất in đậm kèm chữ thập.
+   Không đụng tới vòng giới tính. */
+.card.gone{
+  background:var(--surface-gone);
+  border-bottom:3px solid var(--gold);
+  padding-bottom:8px;
+}
+.card.gone .nm{color:var(--ink-2)}
+.card.gone .yr{color:var(--gold);font-weight:600}
+.card.gone .yr .cross{margin-right:3px}
 
 /* ================= floating controls ================= */
 .zoom{
@@ -211,7 +236,9 @@ img{max-width:100%}
   background:var(--surface);border:1px solid var(--line);border-radius:9px;
   box-shadow:var(--shadow-2);padding:9px 11px;display:flex;gap:14px;font-size:11.5px;color:var(--ink-2);
 }
-.legend i{width:9px;height:9px;border-radius:50%;display:inline-block;margin-right:5px;vertical-align:middle}
+.legend i{display:inline-block;margin-right:5px;vertical-align:middle}
+.legend i.dot{width:10px;height:10px;border-radius:50%}
+.legend i.band{width:16px;height:10px;border-bottom:3px solid var(--gold);background:var(--surface-gone)}
 @media(max-width:640px){.legend{display:none}}
 
 /* ================= drawer ================= */
@@ -232,12 +259,18 @@ img{max-width:100%}
 
 .prof{display:flex;flex-direction:column;align-items:center;text-align:center;padding-bottom:14px}
 .prof .pav{
-  width:112px;height:112px;border-radius:50%;overflow:hidden;background:var(--surface-2);
+  width:112px;height:112px;border-radius:50%;background:var(--surface-2);position:relative;
   display:grid;place-items:center;box-shadow:0 0 0 3px var(--surface),0 0 0 5px var(--ring,var(--ink-3)),var(--shadow-2);
 }
+.prof .pav .ph{position:absolute;inset:0;border-radius:50%;overflow:hidden;display:grid;place-items:center}
 .prof .pav img{width:100%;height:100%;object-fit:cover}
-.prof .pav span{font-family:var(--serif);font-size:40px;font-weight:600;color:var(--ring,var(--ink-3))}
-.prof.gone .pav img{filter:grayscale(.5)}
+.prof .pav .ini{font-family:var(--serif);font-size:40px;font-weight:600;color:var(--ring,var(--ink-3))}
+.prof .pav .sex{
+  position:absolute;right:2px;bottom:2px;width:28px;height:28px;border-radius:50%;
+  background:var(--ring,var(--ink-3));color:#fff;display:grid;place-items:center;
+  font-size:16px;line-height:1;box-shadow:0 0 0 3px var(--surface);
+}
+.prof.gone .pav .ph img{filter:grayscale(1) opacity(.85)}
 .prof h3{font-family:var(--serif);font-size:24px;font-weight:600;margin:14px 0 0;line-height:1.2;text-wrap:balance}
 .prof .alias{font-family:var(--serif);font-style:italic;color:var(--ink-3);font-size:14px;margin-top:2px}
 .prof .tags{display:flex;flex-wrap:wrap;gap:6px;justify-content:center;margin-top:10px}
@@ -246,7 +279,8 @@ img{max-width:100%}
   background:var(--surface-2);border:1px solid var(--line);color:var(--ink-2);
 }
 .tag.gold{color:var(--gold);border-color:var(--gold-line)}
-.tag.live{color:var(--ok)}
+.tag.live{color:var(--ok);border-color:var(--ok)}
+.tag.gone{color:var(--gold);border-color:var(--gold);font-weight:700;background:var(--surface-gone)}
 
 .rule{height:1px;background:var(--line);margin:16px 0;position:relative}
 .rule b{
@@ -385,10 +419,10 @@ dl.facts dd.note{font-size:13px;color:var(--ink-2);line-height:1.55;grid-column:
 .spin{width:18px;height:18px;border:2px solid var(--line);border-top-color:var(--accent);border-radius:50%;animation:sp .7s linear infinite}
 @keyframes sp{to{transform:rotate(360deg)}}
 
-/* chi / nhánh */
+/* chi / nhánh: nằm ở cạnh trái để không tranh chỗ với dải tang ở đáy */
 .card.haschi::before{
-  content:"";position:absolute;left:14px;right:14px;top:-1px;height:3px;
-  background:var(--chi);border-radius:0 0 3px 3px;
+  content:"";position:absolute;left:-1px;top:12px;bottom:12px;width:3px;
+  background:var(--chi);border-radius:3px;
 }
 .chips{display:flex;flex-wrap:wrap;gap:6px}
 .chi-list{display:flex;flex-direction:column;gap:2px;padding:4px}
@@ -411,6 +445,10 @@ dl.facts dd.note{font-size:13px;color:var(--ink-2);line-height:1.55;grid-column:
   #canvas,#rails{position:absolute;left:0;top:0}
   .card{box-shadow:none !important;transform:none !important;transition:none}
   .card.dim{opacity:1}
+  /* Máy in hay bỏ qua bóng đổ, nên vòng giới tính vẽ lại bằng viền thật. */
+  .ava{border:3px solid var(--ring,var(--ink-3));box-shadow:none}
+  .ava .sex{box-shadow:none;border:2px solid #fff}
+  .card.gone{background:var(--surface-gone) !important;border-bottom:3px solid var(--gold) !important}
   .card.mine::after{display:none}
   .rail b{background:#fff}
 
@@ -552,9 +590,9 @@ dl.facts dd.note{font-size:13px;color:var(--ink-2);line-height:1.55;grid-column:
     </div>
 
     <div class="legend">
-      <span><i style="background:var(--male)"></i>Nam</span>
-      <span><i style="background:var(--female)"></i>Nữ</span>
-      <span><i style="background:var(--gold)"></i>Đã mất</span>
+      <span><i class="dot" style="background:var(--male)"></i>Nam ♂</span>
+      <span><i class="dot" style="background:var(--female)"></i>Nữ ♀</span>
+      <span><i class="band"></i>Đã mất †</span>
     </div>
   </main>
 </div>
@@ -1059,7 +1097,33 @@ function toRoman(n){
   return out;
 }
 
-function ring(p){ return p.dead?"var(--gold)":(p.gender==="Nữ"?"var(--female)":(p.gender==="Nam"?"var(--male)":"var(--ink-3)")); }
+/* Vòng quanh ảnh chỉ nói giới tính. Việc đã mất do nền thẻ và dải đáy lo,
+   nhờ vậy người đã mất không bị mất luôn thông tin nam hay nữ. */
+function ring(p){
+  return p.gender==="Nữ" ? "var(--female)"
+       : p.gender==="Nam" ? "var(--male)"
+       : "var(--ink-3)";
+}
+function sexGlyph(p){ return p.gender==="Nữ"?"♀":(p.gender==="Nam"?"♂":""); }
+
+function buildAvatar(p,cls){
+  var av=el("div",cls);
+  av.style.setProperty("--ring",ring(p));
+  var ph=el("div","ph");
+  if(p.photo){
+    var im=new Image(); im.src=p.photo; im.alt=p.name; im.loading="lazy";
+    im.onerror=function(){ im.remove(); ph.appendChild(el("span","ini",initials(p.name))); };
+    ph.appendChild(im);
+  } else ph.appendChild(el("span","ini",initials(p.name)));
+  av.appendChild(ph);
+  var g=sexGlyph(p);
+  if(g){
+    var s=el("span","sex",g);
+    s.setAttribute("aria-hidden","true");
+    av.appendChild(s);
+  }
+  return av;
+}
 
 function yearsText(p){
   var b=p.bd&&p.bd.y?p.bd.y:null, d=p.dd&&p.dd.y?p.dd.y:null;
@@ -1076,18 +1140,14 @@ function cardEl(p,pos){
   c.setAttribute("role","button"); c.tabIndex=0;
   c.setAttribute("aria-label",p.name+(yearsText(p)?", "+yearsText(p):""));
 
-  var av=el("div","ava"); av.style.setProperty("--ring",ring(p));
-  if(p.photo){
-    var im=new Image(); im.src=p.photo; im.alt=p.name; im.loading="lazy";
-    im.onerror=function(){ im.remove(); av.appendChild(el("span","",initials(p.name))); };
-    av.appendChild(im);
-  } else av.appendChild(el("span","",initials(p.name)));
-  c.appendChild(av);
-
+  c.appendChild(buildAvatar(p,"ava"));
   c.appendChild(el("div","nm",p.name));
   if(p.role) c.appendChild(el("div","rl",p.role));
-  c.appendChild(el("div","yr",yearsText(p)));
-  if(p.dead){ var x=el("div","cross","†"); c.appendChild(x); }
+
+  var yr=el("div","yr");
+  if(p.dead) yr.appendChild(el("span","cross","†"));
+  yr.appendChild(document.createTextNode(yearsText(p)));
+  c.appendChild(yr);
   return c;
 }
 
@@ -1232,13 +1292,7 @@ function openDrawer(id){
   body.innerHTML=""; foot.innerHTML="";
 
   var pr=el("div","prof"+(p.dead?" gone":""));
-  var av=el("div","pav"); av.style.setProperty("--ring",ring(p));
-  if(p.photo){
-    var im=new Image(); im.src=p.photo; im.alt=p.name;
-    im.onerror=function(){ im.remove(); av.appendChild(el("span","",initials(p.name))); };
-    av.appendChild(im);
-  } else av.appendChild(el("span","",initials(p.name)));
-  pr.appendChild(av);
+  pr.appendChild(buildAvatar(p,"pav"));
   pr.appendChild(el("h3","",p.name));
   if(p.alias) pr.appendChild(el("div","alias","tức "+p.alias));
 
@@ -1249,7 +1303,7 @@ function openDrawer(id){
   var ci=State.chi&&State.chi.get(id);
   if(ci){ var ct=el("span","tag chi","Chi "+ci.name); ct.style.setProperty("--chi",ci.color); tags.appendChild(ct); }
   if(p.role) tags.appendChild(el("span","tag gold",p.role));
-  tags.appendChild(el("span","tag"+(p.dead?"":" live"),p.dead?"Đã mất":"Còn sống"));
+  tags.appendChild(el("span","tag"+(p.dead?" gone":" live"),p.dead?"Đã mất":"Còn sống"));
   pr.appendChild(tags);
   body.appendChild(pr);
 
