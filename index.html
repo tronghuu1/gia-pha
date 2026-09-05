@@ -985,9 +985,18 @@ function countHidden(id){
 }
 function isFolded(id){ return State.collapsed.has(id); }
 function toggleFold(id){
-  if(State.collapsed.has(id)) State.collapsed["delete"](id);
-  else State.collapsed.add(id);
-  redrawTree();
+  if(State.collapsed.has(id)){
+    State.collapsed["delete"](id);
+    /* Mở từng đời một. Người con nào lại có con thì gập sẵn, nếu không bấm
+       một cái là bung ra cả trăm người và lạc mất chỗ đang xem. */
+    (State.kids.get(id)||[]).forEach(function(k){
+      if((State.kids.get(k)||[]).length) State.collapsed.add(k);
+    });
+  } else {
+    State.collapsed.add(id);
+  }
+  redrawTree(id);
+  nhayThe(id);
 }
 function expandTo(id){
   /* Mở mọi nhánh trên đường từ gốc xuống người này, để tìm kiếm luôn tới nơi. */
@@ -1024,8 +1033,36 @@ function foldAll(){
   setBanner("");
   fitView(true);
 }
-function redrawTree(){
+/* Dựng lại cây mà giữ nguyên chỗ người dùng đang nhìn. Bố cục tính lại thì
+   mọi thứ trượt đi, không neo lại thì bấm xong phải zoom ra dò lại từ đầu. */
+function redrawTree(neoId){
+  var k=State.t.k, truoc=null;
+  if(neoId&&State.pos.has(neoId)){
+    var p=State.pos.get(neoId);
+    truoc={x:p.x*k+State.t.x, y:p.y*k+State.t.y};
+  }
+
   render(); computeBranches(); paintChi(); paintFocus();
+
+  if(!truoc||!State.pos.has(neoId)) return;
+  var q=State.pos.get(neoId);
+  State.t.x=truoc.x-q.x*k;
+  State.t.y=truoc.y-q.y*k;
+
+  /* Vừa mở ra thì kéo lên cho đời kế tiếp lọt vào khung nhìn, nhưng không
+     kéo tới mức đẩy chính thẻ vừa bấm ra khỏi màn hình. */
+  var st=$("#stage"), h=st.clientHeight;
+  var duoi=(q.y+ROW+CARD_H)*k+State.t.y;
+  if(duoi>h-16) State.t.y-=(duoi-(h-16));
+  var tren=q.y*k+State.t.y;
+  if(tren<16) State.t.y+=(16-tren);
+
+  applyT();
+}
+function nhayThe(id){
+  var c=$('#cards .card[data-id="'+cssId(id)+'"]');
+  if(!c) return;
+  c.classList.remove("hit"); void c.offsetWidth; c.classList.add("hit");
 }
 
 /* Gập dần từ đời sâu nhất lên cho tới khi cây vừa bề ngang đọc được. */
@@ -1354,7 +1391,9 @@ function cardEl(p,pos){
     var gap=isFolded(p.id);
     var f=el("button","fold"+(gap?" on":""));
     f.textContent=gap?("▸ "+countHidden(p.id)):"▾";
-    f.title=gap?("Mở nhánh này, đang ẩn "+countHidden(p.id)+" người"):"Gập nhánh này";
+    f.title=gap
+      ? ("Mở đời tiếp theo, nhánh này đang ẩn "+countHidden(p.id)+" người")
+      : "Gập nhánh này";
     f.setAttribute("aria-label",f.title);
     c.appendChild(f);
   }

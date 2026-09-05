@@ -139,7 +139,13 @@ Khi bạn thêm vợ cho một người, script tự điền ngược lại vào
 
 Cây ngang có giới hạn vật lý. Một dòng họ 129 người trải ra khoảng 13000 điểm ảnh, thu cho vừa màn hình thì chữ còn chưa tới 2 điểm ảnh, không ai đọc nổi. Trang xử lý bằng hai cách.
 
-**Gập nhánh.** Dưới mỗi thẻ có người con là một nút tròn nhỏ. Bấm dấu ▾ để gập cả nhánh con cháu, bấm dấu ▸ để mở lại, con số bên cạnh là số người đang ẩn. Cây hẹp lại thật sự chứ không phải mờ đi. Tìm kiếm một người đang nằm trong nhánh bị gập thì trang tự mở đường xuống tới họ.
+**Gập nhánh.** Dưới mỗi thẻ có người con là một nút tròn nhỏ. Bấm dấu ▾ để gập cả nhánh con cháu, bấm dấu ▸ để mở, con số bên cạnh là số người đang ẩn. Cây hẹp lại thật sự chứ không phải mờ đi.
+
+Mở thì mở từng đời một. Bấm một lần chỉ hiện đời con kế tiếp, những người con nào lại có con thì vẫn gập, bạn bấm tiếp để đi sâu thêm. Nếu mở bung cả nhánh thì một cú bấm có thể đổ ra cả trăm người và bạn lạc mất chỗ đang xem.
+
+Nút chỉ nằm ở thẻ trụ của mỗi cặp vợ chồng, vì con cháu được xếp dưới thẻ đó. Sau khi bấm, thẻ vừa bấm đứng yên tại chỗ trên màn hình và nhấp nháy một cái, nên không phải thu nhỏ ra dò lại. Tìm kiếm một người đang nằm trong nhánh bị gập thì trang tự mở đường xuống tới họ.
+
+Hai nút gập hết và mở hết nằm trong cụm thu phóng ở góc trái dưới.
 
 **Không thu vừa màn hình khi cây quá lớn.** Lần đầu mở, nếu cây rộng quá thì trang gập bớt các nhánh sâu và mở ở cỡ chữ đọc được, đặt tại gốc, để bạn tự kéo ngang. Một dải nhắc hiện ra cho biết đang ẩn bao nhiêu người, kèm nút Mở hết.
 

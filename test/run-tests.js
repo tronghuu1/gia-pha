@@ -656,6 +656,53 @@ group('11f. Gap nhanh tren cay ngang');
   ok(A.State.pos.has('16'), 'nguoi do hien ra');
   eq(A.State.pos.size, full, 'ca cay tro lai day du');
 
+  // Mở nhánh chỉ mở đúng một đời kế tiếp
+  A.unfoldAll();
+  A.State.collapsed = new Set(['1']);      // gập ngay ở thuỷ tổ
+  A.redrawTree();
+  eq(A.State.pos.size, 2, 'gap thuy to thi chi con hai cu');
+
+  A.toggleFold('1');
+  ok(A.State.pos.has('3') && A.State.pos.has('5') && A.State.pos.has('7'), 'mo ra thay doi con');
+  ok(!A.State.pos.has('9') && !A.State.pos.has('16'), 'chua thay doi chau va doi chat');
+  ok(A.State.collapsed.has('3') && A.State.collapsed.has('5') && A.State.collapsed.has('7'),
+     'nhung nguoi con co con lai duoc gap san');
+  ok(!A.State.collapsed.has('1'), 'thuy to da mo');
+
+  A.toggleFold('3');
+  ok(A.State.pos.has('9') && A.State.pos.has('11'), 'mo tiep mot doi nua');
+  ok(!A.State.pos.has('16'), 'van chua toi doi chat');
+
+  // Bấm gập hay mở thì chỗ đang nhìn phải đứng yên
+  A.unfoldAll();
+  // Đặt thẻ nằm gọn giữa khung nhìn, để phép kéo vào tầm mắt không xen vào
+  A.State.t = { x: -500, y: 0, k: 0.8 };
+  var truoc = A.State.pos.get('3');
+  var manTruoc = { x: truoc.x * 0.8 - 500, y: truoc.y * 0.8 };
+  A.toggleFold('3');
+  var sau = A.State.pos.get('3');
+  var manSau = { x: sau.x * A.State.t.k + A.State.t.x, y: sau.y * A.State.t.k + A.State.t.y };
+  ok(Math.abs(manSau.x - manTruoc.x) < 0.01, 'the vua bam khong xe ngang',
+     manTruoc.x.toFixed(1) + ' -> ' + manSau.x.toFixed(1));
+  ok(Math.abs(manSau.y - manTruoc.y) < 0.01, 'the vua bam khong xe doc',
+     manTruoc.y.toFixed(1) + ' -> ' + manSau.y.toFixed(1));
+  ok(sau.x !== truoc.x, 'bo cuc that su co tinh lai, khong phai khong doi gi');
+
+  // Mở ra ở gần đáy màn hình thì kéo lên cho thấy đời kế tiếp
+  A.unfoldAll();
+  A.State.collapsed = new Set(['3']);
+  A.redrawTree();
+  var pos3 = A.State.pos.get('3');
+  A.State.t = { x: 0, y: 880 - pos3.y * 0.8, k: 0.8 };   // đẩy thẻ xuống sát đáy
+  A.toggleFold('3');
+  var p3 = A.State.pos.get('3');
+  var duoi = (p3.y + A.ROW + A.CARD_H) * A.State.t.k + A.State.t.y;
+  ok(duoi <= 900 - 15, 'doi ke tiep duoc keo vao trong khung nhin', 'day o ' + duoi.toFixed(0));
+  ok(p3.y * A.State.t.k + A.State.t.y >= 15, 'the vua bam van con trong khung nhin');
+
+  A.unfoldAll();
+  A.State.t = { x: 0, y: 0, k: 1 };
+
   // Gập tự động khi cây quá rộng
   A.State.didAutoFit = false;
   A.unfoldAll();
