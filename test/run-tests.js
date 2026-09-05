@@ -204,6 +204,17 @@ group('4. Ngay gio');
 
   var alive = A.normalize({ id: 'z', name: 'Test3', birth: '1990' });
   ok(alive.dead === false, 'khong co ngay mat thi con song');
+
+  // Gia phả cũ hay chỉ còn ngày giỗ, không rõ năm mất
+  var mo = A.normalize({ id: 'w', name: 'Cu ong', gio: '15/9', death: 'không rõ' });
+  ok(mo.dead === true, 'ghi khong ro vao o nam mat van tinh la da khuat');
+  eq([mo.giod.d, mo.giod.m], [15, 9], 'ngay gio am lich van doc duoc');
+  ok(mo.dd === null, 'khong bia ra ngay mat cu the');
+  eq(A.yearsText(mo), 'đã mất', 'the hien chu da mat khi khong co nam nao');
+
+  var moCoSinh = A.normalize({ id: 'v', name: 'Cu ba', birth: '1918', death: 'không rõ', gio: '01/11' });
+  eq(A.yearsText(moCoSinh), '1918', 'co nam sinh thi hien nam sinh');
+  ok(moCoSinh.dead === true, 'van danh dau la da khuat');
 })();
 
 /* ---------- 5. dựng cây ---------- */
@@ -239,6 +250,24 @@ ok(A.State.bbox.w > 0 && A.State.bbox.h > 0, 'khung cay co kich thuoc');
 })();
 
 eq(A.State.chiList.length, 3, 'nhan ra 3 chi tu 3 nguoi con cua thuy to');
+(function () {
+  // Mạch độc đinh mở đầu: chia chi phải nhảy qua, không dồn cả họ vào một chi
+  var ds = [
+    { id: 'T', name: 'Cụ Tổ', gender: 'Nam' },
+    { id: 'L', name: 'Con Một', gender: 'Nam', father: 'T' },
+    { id: 'A', name: 'Cháu Cả', gender: 'Nam', father: 'L' },
+    { id: 'B', name: 'Cháu Hai', gender: 'Nam', father: 'L' },
+    { id: 'C', name: 'Cháu Ba', gender: 'Nữ', father: 'L' },
+    { id: 'A1', name: 'Chắt', gender: 'Nam', father: 'A' }
+  ];
+  A.setPeople(ds.map(A.normalize), 'demo');
+  eq(A.State.chiList.length, 3, 'nhay qua mach doc dinh de chia dung 3 chi');
+  eq(A.State.chiList.map(function (c) { return c.name; }), ['Cháu Cả', 'Cháu Hai', 'Cháu Ba'], 'ten cac chi lay tu doi co nhieu con');
+  ok(A.State.chi.get('A1') && A.State.chi.get('A1').id === 'A', 'chat theo chi cua ong noi');
+  ok(!A.State.chi.get('T'), 'cu to khong thuoc chi nao');
+  ok(!A.State.chi.get('L'), 'nguoi doc dinh khong thuoc chi nao');
+  A.setPeople(A.DEMO.map(A.normalize), 'demo');
+})();
 (function () {
   var tong = A.State.chiList.reduce(function (n, c) { return n + c.count; }, 0);
   ok(tong === 17, 'moi nguoi tru thuy to va vo deu thuoc mot chi', 'tong ' + tong);

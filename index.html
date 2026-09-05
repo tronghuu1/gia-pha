@@ -857,7 +857,9 @@ function normalize(p){
   o.photo=fixPhoto(o.photo);
   o.bd=parseDate(o.birth);
   o.dd=parseDate(o.death);
-  o.dead=!!(o.death && o.dd);
+  /* Gia phả cũ nhiều người chỉ còn ngày giỗ, không rõ năm mất. Cứ điền gì
+     vào ô năm mất là coi như đã khuất, kể cả chữ "không rõ". */
+  o.dead=!!o.death;
   o.giod=parseDate(o.gio);
   if(!o.giod && o.dd && o.dd.full){
     var L=solar2lunar(o.dd.d,o.dd.m,o.dd.y);
@@ -1538,6 +1540,13 @@ function computeBranches(){
   S.chi=new Map(); S.chiList=[];
   if(!S.blocks.length) return;
   var rootId=S.blocks[0].id;
+  /* Gia phả hay mở đầu bằng một mạch độc đinh vài đời. Chia chi ngay ở người
+     đầu tiên thì cả họ dồn vào một chi, chẳng nói lên điều gì. Đi xuống tới
+     đời đầu tiên có từ hai người con trở lên rồi mới chia. */
+  var guard=0;
+  while((S.kids.get(rootId)||[]).length===1 && guard++<40){
+    rootId=(S.kids.get(rootId))[0];
+  }
   var heads=(S.kids.get(rootId)||[]);
   if(!heads.length) return;
   heads.forEach(function(h,i){

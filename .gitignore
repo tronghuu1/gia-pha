@@ -6,3 +6,9 @@ data.csv
 
 # token GitHub, khong bao gio dua len
 gh-token.txt
+
+# anh va tai lieu goc cua gia dinh, khong dua len GitHub
+*.zip
+*.jpg
+*.jpeg
+*.png
