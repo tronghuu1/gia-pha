@@ -336,6 +336,54 @@ group('10. Kiem tra duong dan cong ghi');
   ok(mb._validate() === '', 'de trong thi khong bao gi');
 })();
 
+/* ---------- 11c. lọc danh sách cha, mẹ, vợ chồng ---------- */
+group('11c. Loc danh sach cha me vo chong');
+(function () {
+  A.setPeople(A.DEMO.map(A.normalize), 'demo');
+  var ids = function (l) { return l.map(function (q) { return q.id; }); };
+  var all = function (c) { return ids(c.fit).concat(ids(c.other)); };
+
+  // Nguyễn Văn Trọng, sinh 1972, nam. Cha thật là số 3 sinh 1945.
+  var ctx = { selfId: '9', year: 1972, gender: 'Nam', exclude: [] };
+
+  var f = A.relCandidates('father', ctx);
+  ok(ids(f.fit).indexOf('3') >= 0, 'cha that nam trong nhom phu hop');
+  ok(all(f).indexOf('9') < 0, 'khong tu lam cha cua chinh minh');
+  ok(all(f).indexOf('16') < 0, 'con chau bi loai han khoi o cha, tranh vong lap');
+  ok(ids(f.fit).indexOf('4') < 0, 'nguoi nu khong nam trong nhom phu hop cua o cha');
+  ok(ids(f.other).indexOf('4') >= 0, 'nguoi nu van chon duoc, nam o nhom it kha nang');
+  ok(ids(f.fit).indexOf('14') < 0, 'nguoi sinh 1982 khong the la cha nguoi sinh 1972');
+  ok(ids(f.other).indexOf('14') >= 0, 'nguoi sinh sau van chon duoc neu thuc su can');
+  eq(f.fit[0] && f.fit[0].id, '7', 'nguoi sinh gan nhat ma van du tuoi thi len dau');
+
+  var m = A.relCandidates('mother', ctx);
+  ok(ids(m.fit).indexOf('4') >= 0, 'me that nam trong nhom phu hop');
+  ok(ids(m.fit).indexOf('3') < 0, 'nguoi nam khong nam trong nhom phu hop cua o me');
+
+  var s = A.relCandidates('spouse', ctx);
+  ok(ids(s.fit).indexOf('10') >= 0, 'vo that nam trong nhom phu hop');
+  ok(all(s).indexOf('3') < 0, 'khong the lay cha minh');
+  ok(all(s).indexOf('16') < 0, 'khong the lay con minh');
+  ok(all(s).indexOf('11') < 0, 'khong the lay em ruot');
+  ok(ids(s.fit).indexOf('8') >= 0, 'nguoi nu khong cung huyet thong, chenh 14 tuoi, van duoc coi la phu hop');
+  ok(ids(s.other).indexOf('7') >= 0, 'nguoi cung gioi tinh bi day xuong nhom it kha nang');
+  ok(ids(s.fit).indexOf('2') < 0, 'cu ba sinh 1922 chenh 50 tuoi thi khong con phu hop');
+
+  var s2 = A.relCandidates('spouse', { selfId: '9', year: 1972, gender: 'Nam', exclude: ['10'] });
+  ok(all(s2).indexOf('10') < 0, 'nguoi da chon lam vo thi khong hien lai trong danh sach');
+
+  // Đúng tình huống trong ảnh chụp: cha sinh sau con
+  var young = A.relCandidates('father', { selfId: '', year: 1986, gender: 'Nam', exclude: [] });
+  var late = A.State.people.filter(function (q) { return q.bd && q.bd.y > 1974; }).map(function (q) { return q.id; });
+  var leaked = late.filter(function (id) { return ids(young.fit).indexOf(id) >= 0; });
+  ok(leaked.length === 0, 'khong ai sinh sau 1974 loi vao nhom cha phu hop cua nguoi sinh 1986', leaked.join(','));
+
+  // Không biết năm sinh thì không loại ai theo tuổi
+  var noYear = A.relCandidates('father', { selfId: '', year: 0, gender: '', exclude: [] });
+  var nam = A.State.people.filter(function (q) { return q.gender !== 'Nữ'; }).length;
+  eq(ids(noYear.fit).length, nam, 'chua khai nam sinh thi moi nguoi nam deu duoc coi la phu hop');
+})();
+
 /* ---------- 11a. tệp CSV mẫu ---------- */
 group('11a. Tep mau-gia-pha.csv');
 (function () {
