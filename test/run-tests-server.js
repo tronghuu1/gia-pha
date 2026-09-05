@@ -305,6 +305,48 @@ group('11. Tep mau khop voi cot cua script');
   ok(accWant.indexOf('mat_khau') >= 0 && accWant.indexOf('muoi') >= 0, 'co cot chuoi bam va chuoi muoi');
 })();
 
+/* ================== 11b. trùng tên đăng nhập ================== */
+group('11b. Trung ten dang nhap');
+(function () {
+  var before = post({ action: 'accounts', token: adminToken }).accounts.length;
+
+  // Thêm mới mà trùng tên thì phải bị chặn, không được ghi đè
+  var clash = post({
+    action: 'account_save', token: adminToken,
+    account: { user: 'trongnt', name: 'Người khác', pass: 'matkhau999', role: 'nguoi_xem', branches: [], status: 'hoat_dong', isNew: true }
+  });
+  ok(clash.ok === false && /đã có người dùng/.test(clash.error), 'chan them moi khi trung ten', clash.error);
+
+  var accs = post({ action: 'accounts', token: adminToken }).accounts;
+  eq(accs.length, before, 'so tai khoan khong doi');
+  var cu = accs.filter(function (a) { return a.user === 'trongnt'; })[0];
+  eq(cu.role, 'bien_tap', 'quyen cua tai khoan cu khong bi ghi de');
+  eq(cu.branches, ['3'], 'nhanh duoc giao cua tai khoan cu con nguyen');
+  ok(post({ action: 'login', user: 'trongnt', pass: 'matkhaumoi' }).ok === true, 'mat khau cu van dung');
+
+  // Sửa tài khoản đang có thì vẫn phải chạy
+  var upd = post({
+    action: 'account_save', token: adminToken,
+    account: { user: 'trongnt', name: 'Trọng sửa tên', role: 'bien_tap', branches: ['3'], status: 'hoat_dong', isNew: false }
+  });
+  ok(upd.ok === true && upd.account.name === 'Trọng sửa tên', 'sua tai khoan dang co van chay');
+
+  // Sửa một tài khoản không tồn tại thì báo, không lặng lẽ tạo mới
+  var ghost = post({
+    action: 'account_save', token: adminToken,
+    account: { user: 'khongtontai', name: 'Ma', role: 'nguoi_xem', branches: [], status: 'hoat_dong', isNew: false }
+  });
+  ok(ghost.ok === false && /Không tìm thấy tài khoản/.test(ghost.error), 'khong lang le tao moi khi bam Sua');
+
+  // Thêm mới với tên chưa ai dùng
+  var fresh = post({
+    action: 'account_save', token: adminToken,
+    account: { user: 'moitinh', name: 'Mới', pass: 'matkhau123', role: 'nguoi_xem', branches: [], status: 'hoat_dong', isNew: true }
+  });
+  ok(fresh.ok === true, 'ten chua ai dung thi them duoc');
+  post({ action: 'account_delete', token: adminToken, user: 'moitinh' });
+})();
+
 /* ================== 12. bảng cũ tự đổi tên cột ================== */
 group('12. Bang cu tu doi ten cot');
 (function () {

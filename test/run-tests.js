@@ -346,6 +346,59 @@ group('10. Kiem tra duong dan cong ghi');
   ok(mb._validate() === '', 'de trong thi khong bao gi');
 })();
 
+/* ---------- 11d. xuất bản in ---------- */
+group('11d. Xuat ban in va PDF');
+(function () {
+  A.setPeople(A.DEMO.map(A.normalize), 'demo');
+  var full = A.State.people.length;
+
+  noThrow(function () { A.openPrint(); }, 'mo duoc hop xuat PDF');
+
+  // Một trang lớn, kèm bảng danh sách
+  var r = A.setupPrint({ mode: 'one', table: true });
+  ok(r.wmm > 0 && r.hmm > 0, 'tinh ra kho trang', r.wmm + 'x' + r.hmm + 'mm');
+  ok(r.wmm <= 4800 && r.hmm <= 4800, 'kho trang khong vuot gioi han cua tep PDF');
+  ok(!!env.dom.document.querySelector('#printHead'), 'co khoi tieu de ban in');
+  ok(!!env.dom.document.querySelector('#printTable'), 'co bang danh sach thanh vien');
+  var css = env.dom.document.querySelector('#printPage');
+  ok(!!css && /@page\{size:[\d.]+mm [\d.]+mm/.test(css.textContent), 'dat kho trang bang @page', css && css.textContent);
+
+  A.teardownPrint();
+  ok(!env.dom.document.querySelector('#printHead'), 'don sach khoi tieu de sau khi in');
+  ok(!env.dom.document.querySelector('#printPage'), 'don sach kho trang sau khi in');
+  eq(A.State.people.length, full, 'so nguoi tro lai nhu cu sau khi in');
+
+  // Không kèm bảng
+  A.setupPrint({ mode: 'fit', paper: 'a4', table: false });
+  ok(!env.dom.document.querySelector('#printTable'), 'bo bang danh sach khi khong chon');
+  A.teardownPrint();
+
+  // Vừa một khổ giấy thì phải thu nhỏ lại
+  var one = A.setupPrint({ mode: 'one', table: false }); A.teardownPrint();
+  var a4 = A.setupPrint({ mode: 'fit', paper: 'a4', table: false }); A.teardownPrint();
+  var a3 = A.setupPrint({ mode: 'fit', paper: 'a3', table: false }); A.teardownPrint();
+  ok(a4.k < one.k, 'kho A4 thu nho hon so voi trang lon');
+  ok(a3.k > a4.k, 'kho A3 cho phep to hon A4');
+  eq([a4.wmm, a4.hmm], [297, 210], 'A4 nam ngang');
+  eq([a3.wmm, a3.hmm], [420, 297], 'A3 nam ngang');
+
+  // In riêng một chi
+  var chi3 = A.State.chiList.filter(function (c) { return c.id === '3'; })[0];
+  ok(!!chi3, 'tim thay chi ong Hung');
+  A.setupPrint({ mode: 'one', table: true, branch: '3' });
+  ok(A.State.people.length < full, 'in mot chi thi cay nho lai', A.State.people.length + '/' + full);
+  ok(A.State.byId.has('9') && A.State.byId.has('16'), 'con chau trong chi van co mat');
+  ok(!A.State.byId.has('13'), 'nguoi chi khac khong lot vao');
+  ok(!A.State.byId.has('1'), 'thuy to o tren khong lot vao');
+  A.teardownPrint();
+
+  // Quan trọng: lọc theo chi không được cắt mất quan hệ thật
+  eq(A.State.people.length, full, 'ca dong ho tro lai day du');
+  eq(A.State.byId.get('3').father, '1', 'ma cha cua goc chi khong bi xoa mat');
+  eq(A.State.byId.get('9').father, '3', 'quan he trong chi con nguyen');
+  ok(A.State.pos.size === full, 've lai duoc ca cay sau khi in');
+})();
+
 /* ---------- 11c. lọc danh sách cha, mẹ, vợ chồng ---------- */
 group('11c. Loc danh sach cha me vo chong');
 (function () {

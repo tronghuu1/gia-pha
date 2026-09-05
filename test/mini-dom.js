@@ -219,6 +219,15 @@ function makeDom(opts) {
     root.childNodes.forEach(function (c) { fn(c); walk(c, fn); });
   }
 
+  function attached(el) {
+    var cur = el;
+    while (cur) {
+      if (cur === docEl) return true;
+      cur = cur.parentNode;
+    }
+    return false;
+  }
+
   function select(root, sel) {
     var out = [];
     String(sel).split(',').forEach(function (s) {
@@ -255,7 +264,12 @@ function makeDom(opts) {
       return f;
     },
     querySelector: function (sel) {
-      if (/^#[\w-]+$/.test(sel) && byId[sel.slice(1)]) return byId[sel.slice(1)];
+      // Sổ tra theo id vẫn giữ phần tử đã bị gỡ, nên phải kiểm nó còn nằm
+      // trong cây hay không, giống hệt trình duyệt thật.
+      if (/^#[\w-]+$/.test(sel)) {
+        var hit = byId[sel.slice(1)];
+        if (hit && attached(hit)) return hit;
+      }
       return select(docEl, sel)[0] || null;
     },
     querySelectorAll: function (sel) { return select(docEl, sel); },

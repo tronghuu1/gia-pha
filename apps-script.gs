@@ -280,6 +280,16 @@ function saveAccount_(a, me) {
   if (['quan_tri', 'bien_tap', 'nguoi_xem'].indexOf(role) < 0) throw new Error('Quyền không hợp lệ.');
 
   var existing = findAccount_(user);
+
+  // Thêm mới mà trùng tên thì phải báo, không được lặng lẽ ghi đè tài khoản
+  // đang có. Bản cũ của trang không gửi cờ này nên vẫn chạy như trước.
+  if (a.isNew === true && existing) {
+    throw new Error('Tên đăng nhập @' + user + ' đã có người dùng rồi. Hãy đặt tên khác, hoặc đóng cửa sổ này và bấm Sửa ở tài khoản đó.');
+  }
+  if (a.isNew === false && !existing) {
+    throw new Error('Không tìm thấy tài khoản @' + user + ' để sửa.');
+  }
+
   var pass = String(a.pass || '');
   if (!existing && pass.length < 6) throw new Error('Tài khoản mới cần mật khẩu ít nhất 6 ký tự.');
   if (existing && pass && pass.length < 6) throw new Error('Mật khẩu mới cần ít nhất 6 ký tự.');

@@ -399,6 +399,55 @@ dl.facts dd.note{font-size:13px;color:var(--ink-2);line-height:1.55;grid-column:
 .chi-list s{text-decoration:none;font-size:11.5px;color:var(--ink-3);font-variant-numeric:tabular-nums}
 .tag.chi{border-color:var(--chi);color:var(--chi)}
 
+/* ================= bản in ================= */
+#printHead,#printTable{display:none}
+
+@media print{
+  html,body{height:auto;overflow:visible;background:#fff}
+  body{-webkit-print-color-adjust:exact;print-color-adjust:exact}
+  .bar,.zoom,.legend,.drawer,.scrim,.pop,#banner,#toast,#modalHost,.empty{display:none !important}
+  #app{display:block;height:auto}
+  #stage{position:relative;overflow:visible;height:auto;background:#fff}
+  #canvas,#rails{position:absolute;left:0;top:0}
+  .card{box-shadow:none !important;transform:none !important;transition:none}
+  .card.dim{opacity:1}
+  .card.mine::after{display:none}
+  .rail b{background:#fff}
+
+  #printHead{
+    display:block;padding:0 0 14px;margin-bottom:6px;border-bottom:2px solid var(--gold);
+  }
+  #printHead h1{font-family:var(--serif);font-size:26px;font-weight:600;margin:0}
+  #printHead .meta{
+    display:flex;gap:18px;flex-wrap:wrap;margin-top:6px;font-size:11px;color:var(--ink-2);
+    font-variant-numeric:tabular-nums;
+  }
+  #printHead .meta b{font-weight:600;color:var(--ink)}
+
+  #printTable{display:block;break-before:page;page-break-before:always;padding-top:8px}
+  #printTable h2{
+    font-family:var(--serif);font-size:18px;font-weight:600;margin:0 0 10px;
+    padding-bottom:6px;border-bottom:1px solid var(--gold);
+  }
+  #printTable table{width:100%;border-collapse:collapse;font-size:10px}
+  #printTable th{
+    text-align:left;font-size:8.5px;letter-spacing:.08em;text-transform:uppercase;
+    color:var(--gold);border-bottom:1px solid var(--line);padding:4px 6px 4px 0;
+  }
+  #printTable td{
+    padding:3px 6px 3px 0;border-bottom:1px solid var(--line-2);vertical-align:top;
+    font-variant-numeric:tabular-nums;
+  }
+  #printTable tr{break-inside:avoid;page-break-inside:avoid}
+  #printTable .nm{font-family:var(--serif);font-size:11px;font-weight:600}
+  #printTable .gen{color:var(--gold);font-weight:600;white-space:nowrap}
+}
+
+.print-note{
+  background:var(--surface-2);border:1px solid var(--line);border-radius:9px;
+  padding:10px 12px;font-size:12.5px;line-height:1.6;color:var(--ink-2);
+}
+
 /* nhắc khi quan hệ cha mẹ vô lý */
 .rel-warn{
   background:var(--accent-soft);border:1px solid var(--accent);border-radius:9px;
@@ -477,6 +526,10 @@ dl.facts dd.note{font-size:13px;color:var(--ink-2);line-height:1.55;grid-column:
       </button>
       <div class="pop" id="popUser" hidden></div>
     </div>
+
+    <button class="btn icon" id="btnPrint" title="Xuất PDF hoặc in" aria-label="Xuất PDF hoặc in">
+      <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"><path d="M7 9V3h10v6"/><path d="M7 19H5a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"/><path d="M7 15h10v6H7z"/></svg>
+    </button>
 
     <button class="btn icon" id="btnCfg" title="Nguồn dữ liệu &amp; hướng dẫn" aria-label="Nguồn dữ liệu và hướng dẫn">
       <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M4 6h9M19 6h1M4 12h3M13 12h7M4 18h9M19 18h1"/><circle cx="16" cy="6" r="2.2"/><circle cx="10" cy="12" r="2.2"/><circle cx="16" cy="18" r="2.2"/></svg>
@@ -1950,6 +2003,7 @@ function openAccounts(){
 
   Api.accounts().then(function(j){
     var list=j.accounts||[];
+    State.accounts=list;
     m.body.innerHTML="";
     if(!list.length){ m.body.appendChild(el("p","muted","Chưa có tài khoản nào.")); return; }
 
@@ -2009,6 +2063,20 @@ function openAccountForm(acc){
     f=field(b,"Tên đăng nhập",isNew?"không dấu, không khoảng trắng":"không đổi được");
     var iU=el("input"); iU.value=acc.user||""; iU.placeholder="trongnt";
     iU.disabled=!isNew; iU.autocapitalize="off"; f.appendChild(iU);
+
+    var taken=(State.accounts||[]).map(function(x){ return String(x.user||"").toLowerCase(); });
+    var warnU=el("div","rel-warn"); warnU.hidden=true; b.appendChild(warnU);
+    function clashUser(){
+      if(!isNew) return false;
+      var v=iU.value.trim().toLowerCase();
+      return !!v && taken.indexOf(v)>=0;
+    }
+    iU.oninput=function(){
+      var bad=clashUser();
+      warnU.hidden=!bad;
+      if(bad) warnU.textContent="Tên đăng nhập @"+iU.value.trim().toLowerCase()+
+        " đã có người dùng rồi. Đặt tên khác, hoặc đóng cửa sổ này rồi bấm Sửa ở tài khoản đó.";
+    };
 
     f=field(b,"Mật khẩu",isNew?"ít nhất 6 ký tự":"để trống nếu không đổi");
     var iP=el("input"); iP.type="text"; iP.autocomplete="new-password"; iP.placeholder=isNew?"":"••••••"; f.appendChild(iP);
@@ -2071,10 +2139,14 @@ function openAccountForm(acc){
     b._submit=function(done){
       var payload={
         user:iU.value.trim().toLowerCase(), name:iN.value.trim(),
-        role:role, branches:branches, status:status
+        role:role, branches:branches, status:status, isNew:isNew
       };
       if(iP.value) payload.pass=iP.value;
       if(!payload.user){ toast("Chưa điền tên đăng nhập."); done(true); return; }
+      if(clashUser()){
+        toast("Tên đăng nhập @"+payload.user+" đã có người dùng rồi.");
+        iU.oninput(); done(true); return;
+      }
       if(role==="bien_tap"&&!branches.length){ toast("Tài khoản biên tập cần ít nhất một nhánh."); done(true); return; }
       Api.accountSave(payload)
         .then(function(){ done(); toast("Đã lưu tài khoản."); openAccounts(); })
@@ -2450,6 +2522,244 @@ function openPerson(id,preset){
   });
 }
 
+/* ================== xuất PDF ================== */
+var PX_MM=25.4/96;           // 1 điểm ảnh ở 96dpi đổi ra milimét
+var PAGE_CAP_MM=4800;        // giới hạn khổ trang mà tệp PDF chịu được
+var Print={on:false,saved:null,savedSource:"",savedFilter:null};
+
+function paperSize(id){
+  return {a4:[297,210],a3:[420,297],a2:[594,420]}[id]||[297,210];
+}
+function branchSubset(rootId){
+  var keep=new Set([rootId]);
+  (function down(x){
+    (State.kids.get(x)||[]).forEach(function(k){ if(!keep.has(k)){ keep.add(k); down(k); } });
+  })(rootId);
+  Array.from(keep).forEach(function(i){
+    (State.sp.get(i)||new Set()).forEach(function(s){ keep.add(s); });
+  });
+  /* Chép ra bản riêng, vì buildIndex có xoá những mã cha mẹ trỏ ra ngoài
+     danh sách. Sửa thẳng lên bản gốc là mất quan hệ thật. */
+  return State.people
+    .filter(function(p){ return keep.has(p.id); })
+    .map(function(p){ return Object.assign({},p,{spouse:p.spouse.slice()}); });
+}
+
+function buildPrintHead(){
+  var h=$("#printHead")||el("div"); h.id="printHead"; h.innerHTML="";
+  h.appendChild(el("h1","",$("#famName").textContent));
+  var m=el("div","meta");
+  var now=new Date();
+  var L=solar2lunar(now.getDate(),now.getMonth()+1,now.getFullYear());
+  [["Thành viên",State.people.length],
+   ["Số đời",State.maxDepth+1],
+   ["Còn sống",State.people.filter(function(p){ return !p.dead; }).length],
+   ["Ngày in",fmtDate({d:now.getDate(),m:now.getMonth()+1,y:now.getFullYear(),full:true})+
+              " · "+L.d+"/"+L.m+" âm lịch"]
+  ].forEach(function(pair){
+    var s=el("span");
+    s.appendChild(document.createTextNode(pair[0]+": "));
+    s.appendChild(el("b","",String(pair[1])));
+    m.appendChild(s);
+  });
+  h.appendChild(m);
+  if(!h.parentNode) $("#app").insertBefore(h,$("#stage"));
+  return h;
+}
+
+function buildPrintTable(){
+  var t=$("#printTable")||el("div"); t.id="printTable";
+
+  var rows=State.people.slice().sort(function(a,b){
+    var pa=State.pos.get(a.id), pb=State.pos.get(b.id);
+    var da=pa?pa.y:1e9, db=pb?pb.y:1e9;
+    if(da!==db) return da-db;
+    var ya=(a.bd&&a.bd.y)||9999, yb=(b.bd&&b.bd.y)||9999;
+    return ya-yb;
+  });
+
+  var head=["Đời","Họ và tên","Giới","Sinh","Mất","Ngày giỗ","Cha","Mẹ","Vợ / chồng","Nơi sinh"];
+  var html="<h2>Danh sách thành viên</h2>"+
+           "<table><thead><tr>"+head.map(function(x){ return "<th>"+x+"</th>"; }).join("")+"</tr></thead><tbody>";
+  var nameOf=function(id){ var q=State.byId.get(id); return q?esc(q.name):""; };
+
+  rows.forEach(function(p){
+    var pos=State.pos.get(p.id);
+    var doi=pos?toRoman(State.genBase+Math.round(pos.y/ROW)):"";
+    html+="<tr>"+
+      '<td class="gen">'+doi+"</td>"+
+      '<td class="nm">'+esc(p.name)+(p.role?" <i>· "+esc(p.role)+"</i>":"")+"</td>"+
+      "<td>"+esc(p.gender||"")+"</td>"+
+      "<td>"+(p.bd?esc(fmtDate(p.bd)):"")+"</td>"+
+      "<td>"+(p.dd?esc(fmtDate(p.dd)):"")+"</td>"+
+      "<td>"+(p.giod?p.giod.d+"/"+p.giod.m+" ÂL":"")+"</td>"+
+      "<td>"+nameOf(p.father)+"</td>"+
+      "<td>"+nameOf(p.mother)+"</td>"+
+      "<td>"+Array.from(State.sp.get(p.id)||[]).map(nameOf).filter(Boolean).join(", ")+"</td>"+
+      "<td>"+esc(p.origin||"")+"</td>"+
+    "</tr>";
+  });
+  t.innerHTML=html+"</tbody></table>";
+  if(!t.parentNode) $("#app").appendChild(t);
+  return t;
+}
+
+function setupPrint(o){
+  o=o||{};
+  if(Print.on) teardownPrint();
+  Print.on=true;
+
+  /* Cất trạng thái đang xem để trả lại nguyên vẹn sau khi in. */
+  Print.saved=State.people;
+  Print.savedSource=State.source;
+  Print.savedFilter={chi:State.chiFilter,focus:State.focusLine,sel:State.sel,t:Object.assign({},State.t)};
+  State.chiFilter=null; State.focusLine=false;
+
+  if(o.branch&&State.byId.has(o.branch)) setPeople(branchSubset(o.branch),State.source);
+  else { buildIndex(); render(); computeBranches(); paintChi(); paintFocus(); }
+
+  var pad=24, headMm=18;
+  var bw=State.bbox.w+pad*2, bh=State.bbox.h+50;
+  var k=1, wmm, hmm, margin=10;
+
+  if(o.mode==="fit"){
+    var pg=paperSize(o.paper), pw=pg[0], ph=pg[1];
+    var availW=(pw-margin*2)/PX_MM;
+    var availH=(ph-margin*2-headMm)/PX_MM;
+    k=Math.min(availW/bw,availH/bh,1.4);
+    wmm=pw; hmm=ph;
+  } else {
+    wmm=bw*PX_MM+margin*2;
+    hmm=bh*PX_MM+margin*2+headMm;
+    if(wmm>PAGE_CAP_MM||hmm>PAGE_CAP_MM){
+      var s=Math.min(PAGE_CAP_MM/wmm,PAGE_CAP_MM/hmm);
+      k=s; wmm=(wmm-margin*2)*s+margin*2; hmm=(hmm-margin*2-headMm)*s+margin*2+headMm;
+    }
+  }
+
+  var offX=pad*k, offY=40*k;
+  var tr="translate("+offX+"px,"+offY+"px) scale("+k+")";
+  $("#canvas").style.transform=tr;
+  $("#rails").style.transform=tr;
+  var st=$("#stage");
+  st.style.width=(State.bbox.w*k+offX*2)+"px";
+  st.style.height=(State.bbox.h*k+offY+20)+"px";
+
+  buildPrintHead();
+  if(o.table) buildPrintTable();
+  else { var old=$("#printTable"); if(old) old.remove(); }
+
+  var css=$("#printPage")||el("style");
+  css.id="printPage";
+  css.textContent="@page{size:"+wmm.toFixed(1)+"mm "+hmm.toFixed(1)+"mm;margin:"+margin+"mm}";
+  if(!css.parentNode) document.body.appendChild(css);
+
+  return {k:k,wmm:wmm,hmm:hmm};
+}
+
+function teardownPrint(){
+  if(!Print.on) return;
+  Print.on=false;
+  var st=$("#stage"); st.style.width=""; st.style.height="";
+  var h=$("#printHead"); if(h) h.remove();
+  var t=$("#printTable"); if(t) t.remove();
+  var c=$("#printPage"); if(c) c.remove();
+
+  if(Print.saved){
+    State.chiFilter=Print.savedFilter.chi;
+    State.focusLine=Print.savedFilter.focus;
+    setPeople(Print.saved,Print.savedSource);
+    State.sel=Print.savedFilter.sel;
+    State.t=Print.savedFilter.t;
+    applyT(); paintFocus();
+    Print.saved=null;
+  }
+}
+
+function openPrint(){
+  if(!State.people.length){ toast("Chưa có ai trong gia phả để in."); return; }
+
+  var opts={mode:"one",paper:"a3",table:true,branch:""};
+  modal("Xuất bản in hoặc PDF",function(b){
+    var f=field(b,"Khổ trang");
+    var seg=el("div","seg"); seg.style.flexWrap="wrap";
+    [["one","Một trang lớn"],["fit","Vừa một khổ giấy"]].forEach(function(o){
+      var bt=el("button","",o[1]);
+      if(opts.mode===o[0]) bt.classList.add("on");
+      bt.onclick=function(){
+        opts.mode=o[0];
+        $$("button",seg).forEach(function(x){ x.classList.remove("on"); });
+        bt.classList.add("on");
+        paperRow.hidden=(opts.mode!=="fit");
+        note();
+      };
+      seg.appendChild(bt);
+    });
+    f.appendChild(seg);
+
+    var paperRow=el("div"); paperRow.hidden=(opts.mode!=="fit"); b.appendChild(paperRow);
+    f=field(paperRow,"Giấy","đều là khổ ngang");
+    var seg2=el("div","seg");
+    [["a4","A4"],["a3","A3"],["a2","A2"]].forEach(function(o){
+      var bt=el("button","",o[1]);
+      if(opts.paper===o[0]) bt.classList.add("on");
+      bt.onclick=function(){
+        opts.paper=o[0];
+        $$("button",seg2).forEach(function(x){ x.classList.remove("on"); });
+        bt.classList.add("on"); note();
+      };
+      seg2.appendChild(bt);
+    });
+    f.appendChild(seg2);
+
+    f=field(b,"In toàn bộ hay một chi");
+    var sel=el("select");
+    sel.appendChild(new Option("Toàn bộ dòng họ ("+State.people.length+" người)",""));
+    (State.chiList||[]).forEach(function(c){
+      sel.appendChild(new Option("Chi "+c.name+" ("+c.count+" người)",c.id));
+    });
+    sel.onchange=function(){ opts.branch=sel.value; note(); };
+    f.appendChild(sel);
+
+    f=field(b,"Kèm theo");
+    var lab=el("label"); lab.style.cssText="display:flex;gap:9px;align-items:flex-start;cursor:pointer;font-weight:400";
+    var cb=el("input"); cb.type="checkbox"; cb.checked=true; cb.style.cssText="width:auto;margin-top:3px";
+    cb.onchange=function(){ opts.table=cb.checked; };
+    lab.appendChild(cb);
+    lab.appendChild(el("span","","Danh sách thành viên dạng bảng ở trang sau, có đời, năm sinh, năm mất, ngày giỗ và cha mẹ. Với cây lớn thì bảng này dễ tra hơn hình vẽ nhiều."));
+    f.appendChild(lab);
+
+    var info=el("div","print-note"); b.appendChild(info);
+    function note(){
+      var n=opts.branch
+        ? (State.chiList||[]).filter(function(c){ return c.id===opts.branch; })[0]
+        : null;
+      var count=n?n.count:State.people.length;
+      var msg;
+      if(opts.mode==="one"){
+        msg="Trang in sẽ rộng đúng bằng cây, hợp để lưu PDF hoặc mang đi in khổ lớn. "+
+            "Chữ giữ nguyên cỡ nên đọc được, nhưng tệp sẽ có một trang rất to.";
+      } else {
+        msg="Cây được thu lại cho vừa một tờ "+opts.paper.toUpperCase()+" nằm ngang. "+
+            (count>60?"Với "+count+" người thì chữ sẽ khá nhỏ, nên bật kèm bảng danh sách.":"In ra là đọc được ngay.");
+      }
+      info.textContent=msg;
+    }
+    note();
+  },function(mf,close){
+    mf.appendChild(el("div","sp"));
+    var c=el("button","btn","Hủy"); c.onclick=close; mf.appendChild(c);
+    var ok=el("button","btn pri","Mở hộp in");
+    ok.onclick=function(){
+      close();
+      setupPrint(opts);
+      /* Chờ trình duyệt vẽ lại rồi mới mở hộp in, nếu không nó chụp bản cũ. */
+      setTimeout(function(){ window.print(); },180);
+    };
+    mf.appendChild(ok);
+  });
+}
+
 /* ================== gắn sự kiện ================== */
 function togglePop(pop,build){
   var open=pop.hidden;
@@ -2462,7 +2772,15 @@ function bindUI(){
   $("#zFit").onclick=function(){ fitView(true); };
   $("#drwClose").onclick=closeDrawer;
   $("#btnCfg").onclick=openSetup;
+  $("#btnPrint").onclick=openPrint;
   $("#btnAdd").onclick=function(){ openPerson(null); };
+
+  /* Bấm Ctrl+P thẳng cũng phải ra bản in tử tế, không phải ảnh chụp màn hình
+     bị cắt cụt. Dọn lại ngay sau khi hộp in đóng. */
+  window.addEventListener("beforeprint",function(){
+    if(!Print.on&&State.people.length) setupPrint({mode:"one",table:true});
+  });
+  window.addEventListener("afterprint",teardownPrint);
   $("#btnGio").onclick=function(e){ e.stopPropagation(); togglePop($("#popGio"),renderGio); };
   $("#btnStat").onclick=function(e){ e.stopPropagation(); togglePop($("#popStat"),renderStats); };
   $("#btnUser").onclick=function(e){
