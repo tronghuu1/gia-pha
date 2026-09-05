@@ -182,6 +182,25 @@ Tab `TaiKhoan` nằm chung file Sheet với gia phả. Nếu bạn chia sẻ fil
 
 ---
 
+## Kiểm thử
+
+Chạy `test\chay-kiem-thu.cmd`. Nếu máy chưa cài Node, script tự mượn Node có sẵn bên trong VS Code.
+
+Hai bộ, tổng 173 mục:
+
+| Bộ | Kiểm cái gì |
+|---|---|
+| `test/run-tests.js` | Bỏ dấu tiếng Việt, đọc CSV, quy đổi âm lịch, dựng cây, chia chi, danh sách giỗ, quyền theo nhánh, và các biểu mẫu dựng được mà không ném lỗi |
+| `test/run-tests-server.js` | Gọi thẳng `doPost` như trình duyệt vẫn gọi: lập tài khoản, đăng nhập, thẻ hết hạn, ghi và xoá người, nối vợ chồng hai chiều, ranh giới nhánh, khoá tài khoản, đổi mật khẩu |
+
+Phép quy đổi âm lịch được đối chiếu với mùng một Tết các năm 2024, 2025, 2026, rồi đổi xuôi đổi ngược trên 1392 ngày rải từ 1900 đến 2100.
+
+Bộ kiểm thử không thay được việc mở bằng trình duyệt thật. Nó không kiểm được phông chữ, bố cục nhìn bằng mắt, việc tải ảnh lên Drive, và cách Google Apps Script trả lời qua mạng. Những thứ đó chỉ dùng thật mới biết.
+
+`test/mini-dom.js` và `test/gas-stubs.js` là DOM giả và bản giả lập các dịch vụ Google, đủ dùng cho kiểm thử chứ không phải bản dựng lại đầy đủ.
+
+---
+
 ## Dùng thử trước khi cài
 
 Mở thẳng `index.html` bằng trình duyệt là thấy ngay giao diện với dữ liệu mẫu. Muốn xem thử bằng dữ liệu thật mà chưa dựng Apps Script, vào cài đặt và dán nội dung CSV vào ô **Dán dữ liệu CSV**.
