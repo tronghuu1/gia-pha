@@ -423,6 +423,59 @@ group('11e. Phan biet nam nu da mat');
   ok(!live.querySelector('.yr .cross'), 'nguoi con song khong co dau chu thap');
 })();
 
+/* ---------- 11h. màn hình trống và quyền đổi nguồn ---------- */
+group('11h. Man hinh trong va quyen doi nguon');
+(function () {
+  var doc = env.dom.document;
+  var urlCu = A.Api.url, sheetCu = A.State.sheetId;
+
+  // Chưa nối nguồn bao giờ
+  A.Api.url = ''; A.State.sheetId = ''; A.setSession(null);
+  A.setPeople([], 'demo');
+  var e = doc.querySelector('#stage .empty');
+  ok(!!e, 'co man hinh trong');
+  ok(e.textContent.indexOf('Chưa nối nguồn') >= 0, 'noi dung chua noi nguon', e.textContent.slice(0, 60));
+  var nut = e.querySelectorAll('button').map(function (x) { return x.textContent; });
+  ok(nut.join('|').indexOf('Nối nguồn dữ liệu') >= 0, 'moi nguoi noi nguon duoc khi chua co gi');
+
+  // Đã nối nguồn nhưng lượt tải này không có ai
+  A.Api.url = 'https://script.google.com/macros/s/x/exec';
+  A.setPeople([], 'script');
+  e = doc.querySelector('#stage .empty');
+  ok(e.textContent.indexOf('Không nhận được danh sách') >= 0, 'noi dung tai hut, khong doi lai thanh chua cau hinh', e.textContent.slice(0, 60));
+  nut = e.querySelectorAll('button').map(function (x) { return x.textContent; });
+  ok(nut.indexOf('Thử lại') >= 0, 'co nut thu lai');
+  ok(nut.indexOf('Nối nguồn dữ liệu') < 0, 'khong moi nguoi thuong doi nguon nua');
+  ok(nut.indexOf('Nguồn dữ liệu') < 0, 'nguoi chua dang nhap khong thay nut nguon du lieu');
+
+  // Quản trị thì vẫn đổi được nguồn
+  A.setSession({ user: 'ad', name: 'Quản trị', role: 'quan_tri', branches: [] });
+  A.setPeople([], 'script');
+  e = doc.querySelector('#stage .empty');
+  nut = e.querySelectorAll('button').map(function (x) { return x.textContent; });
+  ok(nut.indexOf('Nguồn dữ liệu') >= 0, 'quan tri van doi duoc nguon');
+
+  // Không còn chữ ĐỜI lơ lửng trên màn hình trống
+  eq(doc.querySelector('#rails').childNodes.length, 0, 'khong ve thanh phan doi khi chua co ai');
+
+  // Hộp cài đặt: người thường không thấy phần nguồn dữ liệu
+  A.setSession(null);
+  A.openSetup();
+  var mb = doc.querySelector('.modal .mb');
+  ok(mb.innerHTML.indexOf('do quản trị đặt sẵn') >= 0 || mb.textContent.indexOf('do quản trị đặt sẵn') >= 0,
+     'bao cho nguoi thuong biet nguon do quan tri dat');
+  doc.querySelector('#modalHost').innerHTML = '';
+
+  A.setSession({ user: 'ad', name: 'Quản trị', role: 'quan_tri', branches: [] });
+  A.openSetup();
+  mb = doc.querySelector('.modal .mb');
+  ok(mb.textContent.indexOf('do quản trị đặt sẵn') < 0, 'quan tri khong bi chan');
+  doc.querySelector('#modalHost').innerHTML = '';
+
+  A.Api.url = urlCu; A.State.sheetId = sheetCu; A.setSession(null);
+  A.setPeople(A.DEMO.map(A.normalize), 'demo');
+})();
+
 /* ---------- 11g. đường nối cha mẹ tới con ---------- */
 group('11g. Duong noi cha me toi con');
 function soiDuongNoi(A) {

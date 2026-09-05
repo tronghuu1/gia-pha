@@ -667,6 +667,10 @@ dl.facts dd.note{font-size:13px;color:var(--ink-2);line-height:1.55;grid-column:
 
 /* ---------- cấu hình: sửa 2 dòng dưới nếu muốn gắn cứng Google Sheet ---------- */
 var CONFIG = {
+  /* Điền đường dẫn Apps Script kết thúc bằng /exec vào đây thì cả nhà mở link
+     là chạy ngay, không ai phải tự cấu hình. Khi đã điền, phần nguồn dữ liệu
+     trong hộp cài đặt chỉ hiện với tài khoản quản trị. */
+  scriptUrl:"",
   sheetId:  "",          // ví dụ "1AbCdEf...": lấy trong URL Google Sheet
   sheetName:"GiaPha",    // tên tab trong Sheet
   title:    ""           // ví dụ "Gia phả họ Nguyễn"; để trống sẽ tự suy ra
@@ -1237,8 +1241,8 @@ function render(){
   links.setAttribute("width",W); links.setAttribute("height",H);
   links.setAttribute("viewBox","0 0 "+W+" "+H);
 
-  /* thanh ngang phân đời */
-  for(var d=0;d<=S.maxDepth;d++){
+  /* thanh ngang phân đời, không vẽ khi chưa có ai để tránh chữ ĐỜI lơ lửng */
+  for(var d=0;S.people.length&&d<=S.maxDepth;d++){
     var r=el("div","rail");
     r.style.top=(d*ROW-30)+"px";
     r.style.width=W+"px";
@@ -1400,15 +1404,49 @@ function cardEl(p,pos){
   return c;
 }
 
+/* Hai tình huống hoàn toàn khác nhau mà trước đây nhìn giống hệt: chưa nối
+   nguồn bao giờ, và đã nối rồi nhưng lượt tải này không nhận được ai. */
+function daNoiNguon(){ return Api.on || !!State.sheetId; }
+
+function taiLai(){
+  if(Api.on) loadScript();
+  else if(State.sheetId) loadSheet(State.sheetId,State.sheetName||"GiaPha");
+  else location.reload();
+}
+
 function showEmpty(){
   var e=el("div","empty");
-  e.innerHTML=
-    '<div class="seal2">家</div>'+
-    '<h2>Chưa có dữ liệu gia phả</h2>'+
-    '<p>Nối trang này với một Google Sheet để cả nhà cùng nhập và sửa thông tin, hoặc dán trực tiếp dữ liệu để xem thử.</p>';
-  var b=el("button","btn pri","Nối nguồn dữ liệu");
-  b.onclick=openSetup;
-  e.appendChild(b);
+  var noi=daNoiNguon();
+  e.appendChild(el("div","seal2","家"));
+  e.appendChild(el("h2","",noi?"Không nhận được danh sách":"Chưa nối nguồn dữ liệu"));
+  e.appendChild(el("p","",noi
+    ? "Nguồn dữ liệu đã nối và có trả lời, nhưng lượt tải này không có ai trong đó. "+
+      "Thường là Google trả lời hụt, bấm thử lại là được. Nếu vẫn trống thì kiểm tra xem "+
+      "tab GiaPha trong Google Sheet có còn dữ liệu không."
+    : "Nối trang này với một Google Sheet để cả nhà cùng nhập và sửa thông tin, "+
+      "hoặc dán trực tiếp dữ liệu để xem thử."));
+
+  var hang=el("div"); hang.style.cssText="display:flex;gap:9px;flex-wrap:wrap;justify-content:center";
+  if(noi){
+    var b1=el("button","btn pri","Thử lại");
+    b1.onclick=function(){ e.remove(); taiLai(); };
+    hang.appendChild(b1);
+    if(isAdmin()||!Api.on){
+      var b2=el("button","btn","Nguồn dữ liệu");
+      b2.onclick=openSetup;
+      hang.appendChild(b2);
+    }
+    if(State.sheetUrl){
+      var b3=el("a","btn","Mở Google Sheet");
+      b3.href=State.sheetUrl; b3.target="_blank"; b3.rel="noopener";
+      hang.appendChild(b3);
+    }
+  } else {
+    var b0=el("button","btn pri","Nối nguồn dữ liệu");
+    b0.onclick=openSetup;
+    hang.appendChild(b0);
+  }
+  e.appendChild(hang);
   $("#stage").appendChild(e);
 }
 
@@ -2117,21 +2155,34 @@ function openSetup(){
       if(msg) err.scrollIntoView({block:"nearest"});
     };
 
-    f=field(b,"Đường dẫn cổng ghi (Google Apps Script)","địa chỉ Apps Script sinh ra sau khi triển khai, kết thúc bằng /exec");
+    /* Nguồn dữ liệu là việc của người dựng, không phải của người xem. Chỉ mở
+       cho quản trị, hoặc khi chưa có nguồn nào cả, vì lúc đó chưa ai đăng
+       nhập được nên phải có đường vào. */
+    var choSuaNguon=isAdmin()||!Api.on;
+    var khoiNguon=el("div"); khoiNguon.hidden=!choSuaNguon; b.appendChild(khoiNguon);
+
+    if(!choSuaNguon){
+      var kin=el("div","print-note");
+      kin.textContent="Nguồn dữ liệu do quản trị đặt sẵn trong trang, bạn không cần và không sửa được. "+
+        "Đăng nhập bằng tài khoản quản trị nếu cần đổi.";
+      b.appendChild(kin);
+    }
+
+    f=field(khoiNguon,"Đường dẫn cổng ghi (Google Apps Script)","địa chỉ Apps Script sinh ra sau khi triển khai, kết thúc bằng /exec");
     var iScript=el("input"); iScript.type="url"; iScript.placeholder="https://script.google.com/macros/s/.../exec";
     iScript.value=cfg.scriptUrl||""; f.appendChild(iScript);
 
-    b.appendChild(el("div","rule")).appendChild(el("b","","hoặc chỉ xem"));
+    khoiNguon.appendChild(el("div","rule")).appendChild(el("b","","hoặc chỉ xem"));
 
-    f=field(b,"ID của Google Sheet","đoạn giữa /d/ và /edit trên thanh địa chỉ");
+    f=field(khoiNguon,"ID của Google Sheet","đoạn giữa /d/ và /edit trên thanh địa chỉ");
     var iId=el("input"); iId.type="text"; iId.placeholder="1AbCd...";
     iId.value=cfg.sheetId||""; f.appendChild(iId);
 
-    f=field(b,"Tên tab trong Sheet");
+    f=field(khoiNguon,"Tên tab trong Sheet");
     var iName=el("input"); iName.type="text"; iName.placeholder="GiaPha";
     iName.value=cfg.sheetName||"GiaPha"; f.appendChild(iName);
 
-    f=field(b,"Tên gia phả","để trống sẽ tự lấy theo họ của thủy tổ");
+    f=field(khoiNguon,"Tên gia phả","để trống sẽ tự lấy theo họ của thủy tổ");
     var iTitle=el("input"); iTitle.type="text"; iTitle.placeholder="Gia phả họ Nguyễn";
     iTitle.value=cfg.title||""; f.appendChild(iTitle);
 
@@ -2145,15 +2196,15 @@ function openSetup(){
     });
     f.appendChild(seg);
 
-    b.appendChild(el("div","rule")).appendChild(el("b","","Xem thử không cần cài gì"));
-    f=field(b,"Dán dữ liệu CSV","chép từ Sheet rồi dán vào đây");
+    khoiNguon.appendChild(el("div","rule")).appendChild(el("b","","Xem thử không cần cài gì"));
+    f=field(khoiNguon,"Dán dữ liệu CSV","chép từ Sheet rồi dán vào đây");
     var iPaste=el("textarea"); iPaste.placeholder=CSV_TEMPLATE.split("\n").slice(0,2).join("\n")+"\n…";
     iPaste.value=cfg.paste||""; f.appendChild(iPaste);
     var cp=el("button","btn sm","Chép mẫu CSV vào ô trên");
     cp.onclick=function(){ iPaste.value=CSV_TEMPLATE; iPaste.focus(); };
     f.appendChild(cp);
 
-    b.appendChild(el("div","rule")).appendChild(el("b","","Cách dựng trong 15 phút"));
+    khoiNguon.appendChild(el("div","rule")).appendChild(el("b","","Cách dựng trong 15 phút"));
     var ol=el("ol","steps");
     [["Tạo Google Sheet","Vào sheets.new, đặt tên tab là <code>GiaPha</code>, dán dòng tiêu đề trong file <code>mau-gia-pha.csv</code> vào hàng 1."],
      ["Mở cổng ghi","Trong Sheet chọn Tiện ích mở rộng → Apps Script, dán toàn bộ file <code>apps-script.gs</code>, bấm Triển khai → Ứng dụng web, chọn <b>Bất kỳ ai</b>, rồi chép đường dẫn kết thúc bằng <code>/exec</code> vào ô đầu trang này."],
@@ -2166,7 +2217,7 @@ function openSetup(){
       var p=el("p"); p.innerHTML=s[1]; d.appendChild(p);
       li.appendChild(d); ol.appendChild(li);
     });
-    b.appendChild(ol);
+    khoiNguon.appendChild(ol);
 
     /* Bắt hai lỗi hay gặp nhất: dán nhầm địa chỉ Sheet, và dùng bản /dev. */
     b._validate=function(){
@@ -2198,9 +2249,11 @@ function openSetup(){
       };
     };
   },function(mf,close){
-    var reset=el("button","btn","Dùng dữ liệu mẫu");
-    reset.onclick=function(){ saveCfg({theme:loadCfg().theme||"auto"}); close(); location.reload(); };
-    mf.appendChild(reset);
+    if(isAdmin()||!Api.on){
+      var reset=el("button","btn","Dùng dữ liệu mẫu");
+      reset.onclick=function(){ saveCfg({theme:loadCfg().theme||"auto"}); close(); location.reload(); };
+      mf.appendChild(reset);
+    }
     mf.appendChild(el("div","sp"));
     var cancel=el("button","btn","Đóng"); cancel.onclick=close; mf.appendChild(cancel);
     var ok=el("button","btn pri","Lưu & tải lại");
@@ -3296,7 +3349,7 @@ function boot(){
   var cfg=loadCfg();
   applyTheme(cfg.theme||"auto");
   bindStage(); bindSearch(); bindUI();
-  Api.url=cfg.scriptUrl||"";
+  Api.url=cfg.scriptUrl||CONFIG.scriptUrl||"";
   try{ Api.token=localStorage.getItem(TOKKEY)||""; }catch(e){ Api.token=""; }
   if(CONFIG.sheetId&&!cfg.sheetId&&!Api.on){ cfg.sheetId=CONFIG.sheetId; cfg.sheetName=CONFIG.sheetName; }
 
