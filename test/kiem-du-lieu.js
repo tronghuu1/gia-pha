@@ -70,6 +70,7 @@ for (var r = 1; r < raw2.length; r++) {
 }
 
 /* ---- dựng cây ---- */
+A.State.didAutoFit = true;   // soi dữ liệu thì phải mở hết nhánh, không gập tự động
 A.setPeople(people, 'local');
 var S = A.State;
 
@@ -115,6 +116,28 @@ people.forEach(function (p) {
       loi.push(p.name + ' sinh ' + p.bd.y + ' ma ' + pair[0] + ' ' + q.name + ' sinh ' + q.bd.y);
     }
   });
+});
+
+/* ---- đường nối cha mẹ tới con ---- */
+S.pos.forEach(function (pos, id) {
+  var p = S.byId.get(id);
+  if (!p || (!p.father && !p.mother)) return;
+  if (pos.spouseOf) {
+    if (p.father || p.mother) {
+      nhac.push(p.name + ' vua la con trong ho vua duoc ve o vi tri vo chong, nen khong co duong noi len cha me');
+    }
+    return;
+  }
+  var lk = (S.links || []).filter(function (L) { return L.kids.indexOf(id) >= 0; });
+  if (lk.length !== 1) { loi.push(p.name + ' co ' + lk.length + ' duong noi len cha me'); return; }
+  var cap = [lk[0].anchor, lk[0].spouse].filter(Boolean);
+  if (p.father && p.mother) {
+    if (cap.indexOf(p.father) < 0 || cap.indexOf(p.mother) < 0) {
+      loi.push(p.name + ' noi vao ' + cap.join('+') + ' thay vi cha me that');
+    }
+  } else if (cap.indexOf(p.father || p.mother) < 0) {
+    loi.push(p.name + ' noi vao sai nguoi');
+  }
 });
 
 /* ---- thẻ chồng lên nhau ---- */

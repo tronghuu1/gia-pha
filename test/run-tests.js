@@ -414,6 +414,64 @@ group('11e. Phan biet nam nu da mat');
   ok(!live.querySelector('.yr .cross'), 'nguoi con song khong co dau chu thap');
 })();
 
+/* ---------- 11g. đường nối cha mẹ tới con ---------- */
+group('11g. Duong noi cha me toi con');
+function soiDuongNoi(A) {
+  var loi = [];
+  A.State.pos.forEach(function (pos, id) {
+    var p = A.State.byId.get(id);
+    if (!p || (!p.father && !p.mother)) return;
+    if (pos.spouseOf) return;               // thẻ đứng ở vị trí vợ chồng thì không có đường xuống
+    var lk = (A.State.links || []).filter(function (L) { return L.kids.indexOf(id) >= 0; });
+    if (lk.length !== 1) { loi.push(p.name + ': co ' + lk.length + ' duong noi'); return; }
+    var L = lk[0];
+    var cap = [L.anchor, L.spouse].filter(Boolean);
+    if (p.father && p.mother) {
+      if (cap.indexOf(p.father) < 0 || cap.indexOf(p.mother) < 0) {
+        loi.push(p.name + ': noi vao ' + cap.join('+') + ' thay vi ' + p.father + '+' + p.mother);
+      }
+    } else if (cap.indexOf(p.father || p.mother) < 0) {
+      loi.push(p.name + ': noi vao sai nguoi');
+    }
+  });
+  return loi;
+}
+(function () {
+  A.setPeople(A.DEMO.map(A.normalize), 'demo');
+  ok(A.State.links.length > 0, 'co ghi lai cac moi noi');
+  var loi = soiDuongNoi(A);
+  ok(loi.length === 0, 'moi nguoi con roi dung xuong cap cha me cua minh', loi.slice(0, 3).join(' | '));
+
+  // Ông có hai vợ, con riêng mỗi bên phải rơi xuống đúng khe của cặp mình
+  var ds = [
+    { id: 'A', name: 'Ông Cả', gender: 'Nam', spouse: 'B,C' },
+    { id: 'B', name: 'Vợ Cả', gender: 'Nữ', spouse: 'A' },
+    { id: 'C', name: 'Vợ Hai', gender: 'Nữ', spouse: 'A' },
+    { id: 'D', name: 'Con Bà Cả', gender: 'Nam', father: 'A', mother: 'B' },
+    { id: 'E', name: 'Con Bà Hai', gender: 'Nữ', father: 'A', mother: 'C' },
+    { id: 'F', name: 'Con Bà Hai Nữa', gender: 'Nam', father: 'A', mother: 'C' }
+  ];
+  A.setPeople(ds.map(A.normalize), 'demo');
+  eq(soiDuongNoi(A), [], 'hai ba vo thi con ai ve nha nay');
+
+  var lD = A.State.links.filter(function (L) { return L.kids.indexOf('D') >= 0; })[0];
+  var lE = A.State.links.filter(function (L) { return L.kids.indexOf('E') >= 0; })[0];
+  eq(lD.spouse, 'B', 'con ba ca treo duoi cap A va B');
+  eq(lE.spouse, 'C', 'con ba hai treo duoi cap A va C');
+  ok(lE.kids.indexOf('F') >= 0, 'hai con cung me nam chung mot duong');
+  ok(lD.fromX < lE.fromX, 'diem roi cua ba ca nam ben trai diem roi cua ba hai');
+
+  // Điểm rơi phải nằm trong khe giữa hai thẻ, không cắt ngang thẻ nào
+  [lD, lE].forEach(function (L, i) {
+    var xs = [];
+    A.State.pos.forEach(function (pos, id) { if (pos.y === 0) xs.push({ id: id, x: pos.x }); });
+    var deLen = xs.some(function (o) { return L.fromX > o.x + 2 && L.fromX < o.x + A.CARD_W - 2; });
+    ok(!deLen, 'diem roi thu ' + (i + 1) + ' nam trong khe, khong cat ngang the nao');
+  });
+
+  A.setPeople(A.DEMO.map(A.normalize), 'demo');
+})();
+
 /* ---------- 11d. xuất bản in ---------- */
 group('11d. Xuat ban in va PDF');
 (function () {
@@ -482,6 +540,17 @@ group('11d. Xuat ban in va PDF');
   eq(A.State.byId.get('3').father, '1', 'ma cha cua goc chi khong bi xoa mat');
   eq(A.State.byId.get('9').father, '3', 'quan he trong chi con nguyen');
   ok(A.State.pos.size === full, 've lai duoc ca cay sau khi in');
+
+  // Chọn cả hai thì in cây trước, xếp bản kê vào hàng chờ cho lượt in sau
+  A.Print.next = null;
+  A.setupPrint({ kind: 'tree', fit: 'one' });
+  A.Print.next = { kind: 'list', note: true };
+  ok(A.Print.next.kind === 'list', 'xep ban ke vao hang cho');
+  A.teardownPrint();
+  var L3 = A.setupPrint(A.Print.next);
+  eq([L3.wmm, L3.hmm], [210, 297], 'luot in thu hai la ban ke A4 doc');
+  A.teardownPrint();
+  A.Print.next = null;
 
   // Nhánh đang gập trên màn hình vẫn phải in ra đầy đủ
   A.State.collapsed = new Set(['3']);

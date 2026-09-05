@@ -633,6 +633,8 @@ dl.facts dd.note{font-size:13px;color:var(--ink-2);line-height:1.55;grid-column:
       <button id="zIn" title="Phóng to" aria-label="Phóng to"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 5v14M5 12h14"/></svg></button>
       <button id="zOut" title="Thu nhỏ" aria-label="Thu nhỏ"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 12h14"/></svg></button>
       <button id="zFit" title="Vừa màn hình" aria-label="Vừa màn hình"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M4 9V4h5M20 9V4h-5M4 15v5h5M20 15v5h-5"/></svg></button>
+      <button id="zFold" title="Gập hết nhánh" aria-label="Gập hết nhánh"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M8 5l4 4 4-4M8 19l4-4 4 4M4 12h16"/></svg></button>
+      <button id="zUnfold" title="Mở hết nhánh" aria-label="Mở hết nhánh"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M8 9l4-4 4 4M8 15l4 4 4-4M4 12h16"/></svg></button>
     </div>
 
     <div class="legend">
@@ -1009,6 +1011,17 @@ function unfoldAll(){
   State.autoFoldFrom=0;
   redrawTree();
   setBanner("");
+  initialView();
+}
+function foldAll(){
+  var c=new Set();
+  State.people.forEach(function(p){
+    if((State.kids.get(p.id)||[]).length) c.add(p.id);
+  });
+  State.collapsed=c;
+  State.autoFoldFrom=0;
+  redrawTree();
+  setBanner("");
   fitView(true);
 }
 function redrawTree(){
@@ -1180,8 +1193,10 @@ function render(){
     rails.appendChild(r);
   }
 
-  /* đường nối */
+  /* đường nối. Ghi lại từng mối nối vào State.links để kiểm được bằng máy
+     rằng mỗi người con rơi đúng xuống cặp cha mẹ của mình. */
   var d1="",d2="";
+  S.links=[];
   (function walk(bs){
     bs.forEach(function(b){
       var ax=b.ownX+CARD_W/2, ay=b.y;
@@ -1210,6 +1225,13 @@ function render(){
         d1+="M"+fromX+" "+fromY+"V"+busY+" ";
         d1+="M"+lo+" "+busY+"H"+hi+" ";
         xs.forEach(function(cx){ d1+="M"+cx+" "+busY+"V"+((b.depth+1)*ROW)+" "; });
+
+        S.links.push({
+          anchor:b.id,
+          spouse:(idx<b.sps.length)?b.sps[idx]:null,
+          fromX:fromX, fromY:fromY, busY:busY,
+          kids:list.map(function(k){ return k.id; })
+        });
       });
       walk(b.kids);
     });
@@ -1302,8 +1324,10 @@ function cardEl(p,pos){
   yr.appendChild(document.createTextNode(yearsText(p)));
   c.appendChild(yr);
 
+  /* Con cháu luôn được xếp dưới thẻ trụ của cặp vợ chồng, nên chỉ thẻ đó mới
+     gập được. Trước đây thẻ vợ cũng hiện nút mà bấm không ăn thua gì. */
   var soCon=(State.kids.get(p.id)||[]).length;
-  if(soCon){
+  if(soCon && !pos.spouseOf){
     var gap=isFolded(p.id);
     var f=el("button","fold"+(gap?" on":""));
     f.textContent=gap?("▸ "+countHidden(p.id)):"▾";
@@ -2798,7 +2822,7 @@ function openPerson(id,preset){
 /* ================== xuất PDF ================== */
 var PX_MM=25.4/96;           // 1 điểm ảnh ở 96dpi đổi ra milimét
 var PAGE_CAP_MM=4800;        // giới hạn khổ trang mà tệp PDF chịu được
-var Print={on:false,saved:null,savedSource:"",savedFilter:null};
+var Print={on:false,saved:null,savedSource:"",savedFilter:null,next:null};
 
 function paperSize(id){
   return {a4:[297,210],a3:[420,297],a2:[594,420]}[id]||[297,210];
@@ -3035,18 +3059,18 @@ function openPrint(){
 
   var opts={kind:"list",fit:"one",paper:"a3",note:true,branch:""};
   modal("Xuất bản in hoặc PDF",function(b){
-    var f=field(b,"In cái gì");
-    var segK=el("div","seg");
-    [["list","Bản kê theo đời"],["tree","Cây gia phả"]].forEach(function(o){
+    var f=field(b,"In cái gì","mỗi lượt in ra một tệp PDF");
+    var segK=el("div","seg"); segK.style.flexWrap="wrap";
+    [["list","Bản kê"],["tree","Cây gia phả"],["both","Cả hai"]].forEach(function(o){
       var bt=el("button","",o[1]);
       if(opts.kind===o[0]) bt.classList.add("on");
       bt.onclick=function(){
         opts.kind=o[0];
         $$("button",segK).forEach(function(x){ x.classList.remove("on"); });
         bt.classList.add("on");
-        treeRow.hidden=(opts.kind!=="tree");
-        listRow.hidden=(opts.kind!=="list");
-        paperRow.hidden=(opts.kind!=="tree"||opts.fit!=="fit");
+        treeRow.hidden=(opts.kind==="list");
+        listRow.hidden=(opts.kind==="tree");
+        paperRow.hidden=(opts.kind==="list"||opts.fit!=="fit");
         note();
       };
       segK.appendChild(bt);
@@ -3054,7 +3078,7 @@ function openPrint(){
     f.appendChild(segK);
 
     /* ---- riêng cho cây ---- */
-    var treeRow=el("div"); treeRow.hidden=(opts.kind!=="tree"); b.appendChild(treeRow);
+    var treeRow=el("div"); treeRow.hidden=(opts.kind==="list"); b.appendChild(treeRow);
     f=field(treeRow,"Khổ trang");
     var seg=el("div","seg");
     [["one","Một trang lớn"],["fit","Vừa một khổ giấy"]].forEach(function(o){
@@ -3087,7 +3111,7 @@ function openPrint(){
     f.appendChild(seg2);
 
     /* ---- riêng cho bản kê ---- */
-    var listRow=el("div"); listRow.hidden=(opts.kind!=="list"); b.appendChild(listRow);
+    var listRow=el("div"); listRow.hidden=(opts.kind==="tree"); b.appendChild(listRow);
     f=field(listRow,"Kèm theo");
     var lab=el("label"); lab.style.cssText="display:flex;gap:9px;align-items:flex-start;cursor:pointer;font-weight:400";
     var cb=el("input"); cb.type="checkbox"; cb.checked=true; cb.style.cssText="width:auto;margin-top:3px";
@@ -3112,7 +3136,10 @@ function openPrint(){
         ? (State.chiList||[]).filter(function(c){ return c.id===opts.branch; })[0]
         : null;
       var count=n?n.count:State.people.length;
-      if(opts.kind==="list"){
+      if(opts.kind==="both"){
+        info.textContent="Hai tệp riêng. Hộp in mở lần đầu cho cây gia phả, lưu xong thì trang tự mở hộp in lần hai cho bản kê. "+
+          "Mỗi lần nhớ chọn Đích đến là Lưu dưới dạng PDF, và đặt hai tên tệp khác nhau.";
+      } else if(opts.kind==="list"){
         info.textContent="Khổ A4 dọc, chia theo đời, mỗi người một đoạn ngắn kèm cha mẹ, vợ chồng và các con. "+
           "Ước chừng "+Math.max(1,Math.ceil(count/(opts.note?9:16)))+" trang cho "+count+" người. "+
           "Đây là dạng dễ đọc nhất khi họ đông.";
@@ -3132,7 +3159,14 @@ function openPrint(){
     var ok=el("button","btn pri","Mở hộp in");
     ok.onclick=function(){
       close();
-      setupPrint(opts);
+      var dau=Object.assign({},opts);
+      if(opts.kind==="both"){
+        dau.kind="tree";
+        Print.next=Object.assign({},opts,{kind:"list"});
+      } else {
+        Print.next=null;
+      }
+      setupPrint(dau);
       /* Chờ trình duyệt vẽ lại rồi mới mở hộp in, nếu không nó chụp bản cũ. */
       setTimeout(function(){ window.print(); },180);
     };
@@ -3150,6 +3184,8 @@ function bindUI(){
   $("#zIn").onclick=function(){ zoomBy(1.25); };
   $("#zOut").onclick=function(){ zoomBy(1/1.25); };
   $("#zFit").onclick=function(){ fitView(true); };
+  $("#zFold").onclick=foldAll;
+  $("#zUnfold").onclick=unfoldAll;
   $("#drwClose").onclick=closeDrawer;
   $("#btnCfg").onclick=openSetup;
   $("#btnPrint").onclick=openPrint;
@@ -3160,7 +3196,19 @@ function bindUI(){
   window.addEventListener("beforeprint",function(){
     if(!Print.on&&State.people.length) setupPrint({kind:"list",note:true});
   });
-  window.addEventListener("afterprint",teardownPrint);
+  /* Trình duyệt chỉ xuất được một tệp cho mỗi lần in. Muốn hai tệp thì phải
+     in hai lượt, nên in xong lượt đầu là tự dựng và mở hộp in lượt sau. */
+  window.addEventListener("afterprint",function(){
+    var sau=Print.next;
+    Print.next=null;
+    teardownPrint();
+    if(!sau) return;
+    toast("Đã xong tệp cây. Giờ tới bản kê, chọn Lưu dưới dạng PDF lần nữa.");
+    setTimeout(function(){
+      setupPrint(sau);
+      setTimeout(function(){ window.print(); },200);
+    },600);
+  });
   $("#btnGio").onclick=function(e){ e.stopPropagation(); togglePop($("#popGio"),renderGio); };
   $("#btnStat").onclick=function(e){ e.stopPropagation(); togglePop($("#popStat"),renderStats); };
   $("#btnUser").onclick=function(e){
