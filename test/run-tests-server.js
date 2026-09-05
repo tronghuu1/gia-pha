@@ -292,6 +292,19 @@ group('10. Ham xet nhanh');
   ok(S.inAnyBranch_(rows, '13', ['3', '5']) === true, 'giao nhieu nhanh thi xet ca hai');
 })();
 
+/* ================== 11. tệp mẫu khớp với cột của script ================== */
+group('11. Tep mau khop voi cot cua script');
+(function () {
+  var raw = fs.readFileSync(path.join(ROOT, 'mau-gia-pha.csv'), 'utf8').replace(/^﻿/, '');
+  var header = raw.split(/\r?\n/)[0].split(',').map(function (s) { return s.trim(); });
+  var want = S.COLS.map(function (c) { return c[0]; });
+  eq(header, want, 'tieu de tep mau trung khop thu tu cot trong apps-script.gs');
+
+  var accWant = S.ACOLS.map(function (c) { return c[0]; });
+  eq(accWant.length, 8, 'bang tai khoan co 8 cot');
+  ok(accWant.indexOf('mat_khau') >= 0 && accWant.indexOf('muoi') >= 0, 'co cot chuoi bam va chuoi muoi');
+})();
+
 /* ================== tổng kết ================== */
 console.log('\n' + '='.repeat(52));
 console.log('DAT ' + pass + ' / ' + (pass + fail));

@@ -336,6 +336,35 @@ group('10. Kiem tra duong dan cong ghi');
   ok(mb._validate() === '', 'de trong thi khong bao gi');
 })();
 
+/* ---------- 11a. tệp CSV mẫu ---------- */
+group('11a. Tep mau-gia-pha.csv');
+(function () {
+  var p = path.join(ROOT, 'mau-gia-pha.csv');
+  var raw = fs.readFileSync(p);
+  ok(raw[0] === 0xEF && raw[1] === 0xBB && raw[2] === 0xBF,
+     'co dau nhan dang UTF-8 o dau tep de Excel khong doan nham bang ma',
+     'byte dau: ' + raw.slice(0, 3).toString('hex'));
+
+  var txt = raw.toString('utf8');
+  var rows = A.parseCSV(txt);
+  eq(rows[0][0], 'id', 'dau nhan dang bi cat bo khi doc, cot dau van la id');
+  eq(rows[0].length, 15, 'du 15 cot');
+
+  var ps = A.rowsToPeople(rows);
+  eq(ps.length, 10, 'doc duoc 10 nguoi mau');
+  eq(ps[0].name, 'Nguyễn Văn Đại', 'dau tieng Viet doc ra dung');
+  eq(ps[0].origin, 'Duy Tiên - Hà Nam', 'que quan co dau doc ra dung');
+  eq(ps[0].role, 'Thuỷ tổ', 'vai tro co dau doc ra dung');
+
+  // Không được lẫn ký tự thay thế của bảng mã hỏng
+  ok(txt.indexOf('�') < 0, 'khong co ky tu hong trong tep');
+
+  // Dựng thử cây từ chính tệp mẫu
+  noThrow(function () { A.setPeople(ps, 'local'); }, 'dung duoc cay tu tep mau');
+  eq(A.State.pos.size, 10, 'ca 10 nguoi trong tep mau deu co cho');
+  A.setPeople(A.DEMO.map(A.normalize), 'demo');
+})();
+
 /* ---------- 11b. hai vợ và dữ liệu hỏng ---------- */
 group('11b. Hai vo, con rieng moi ben, va du lieu hong');
 (function () {

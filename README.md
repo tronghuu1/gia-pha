@@ -174,6 +174,8 @@ Tab `TaiKhoan` nằm chung file Sheet với gia phả. Nếu bạn chia sẻ fil
 
 **Đăng nhập xong vẫn không thấy nút Sửa.** Tài khoản đang ở quyền *Chỉ xem*, hoặc là *Biên tập* nhưng chưa được giao nhánh nào.
 
+**Mở file CSV bằng Excel thấy chữ Việt nát bét.** File `mau-gia-pha.csv` đã có dấu nhận dạng UTF-8 ở đầu nên Excel đọc đúng. Nếu bạn tự xuất một file CSV khác từ Sheet rồi gặp lỗi này, đừng mở bằng cách bấm đúp. Vào Excel, chọn Dữ liệu, chọn Từ văn bản, rồi đặt nguồn gốc tệp là 65001 UTF-8. Hoặc đơn giản hơn là mở bằng Google Sheets.
+
 **Ngày sinh biến thành số lạ trong Sheet.** Cột đang ở định dạng ngày tháng. Bôi đen cột, chọn Định dạng → Số → Văn bản thuần túy.
 
 **Hai người bị vẽ tách rời.** Một trong hai thiếu `cha_id` và `me_id`, hoặc mã khai không khớp mã thật. Mở ngăn chi tiết xem phần Quan hệ để đối chiếu.
