@@ -223,6 +223,15 @@ noThrow(function () { A.setPeople(A.DEMO.map(A.normalize), 'demo'); }, 'setPeopl
 eq(A.State.people.length, 19, 'du 19 nguoi trong du lieu mau');
 eq(A.State.pos.size, 19, 'moi nguoi deu co toa do');
 eq(A.State.maxDepth, 3, 'cay sau 4 doi');
+eq(A.State.genCount, 4, 'dem dung 4 doi theo du lieu');
+(function () {
+  // Gập bớt nhánh thì phần hiện ngắn lại, nhưng số đời của họ không đổi
+  A.State.collapsed = new Set(['3', '5', '7']);
+  A.redrawTree();
+  ok(A.State.maxDepth < 3, 'phan dang hien ngan lai');
+  eq(A.State.genCount, 4, 'so doi cua ca ho van la 4');
+  A.unfoldAll();
+})();
 ok(A.State.bbox.w > 0 && A.State.bbox.h > 0, 'khung cay co kich thuoc');
 
 (function () {
@@ -433,6 +442,15 @@ function soiDuongNoi(A) {
     } else if (cap.indexOf(p.father || p.mother) < 0) {
       loi.push(p.name + ': noi vao sai nguoi');
     }
+    // Hình học: thanh ngang phải chạm được cả điểm rơi cha mẹ lẫn đường lên con
+    var eps = 0.01;
+    if (L.fromX < L.busLo - eps || L.fromX > L.busHi + eps) {
+      loi.push(p.name + ': thanh ngang khong voi toi diem roi cha me');
+    }
+    var cx = A.State.pos.get(id).x + A.CARD_W / 2;
+    if (cx < L.busLo - eps || cx > L.busHi + eps) {
+      loi.push(p.name + ': thanh ngang khong voi toi duong len con');
+    }
   });
   return loi;
 }
@@ -441,6 +459,42 @@ function soiDuongNoi(A) {
   ok(A.State.links.length > 0, 'co ghi lai cac moi noi');
   var loi = soiDuongNoi(A);
   ok(loi.length === 0, 'moi nguoi con roi dung xuong cap cha me cua minh', loi.slice(0, 3).join(' | '));
+
+  /* Chính là cảnh ông Thể sinh ông Lý: nhà một người con, mà người con đó lại
+     có vợ. Điểm rơi của cha mẹ nằm ở khe giữa hai cụ, còn đường lên con nằm ở
+     giữa thẻ người con, hai chỗ lệch nhau. Thanh ngang trước đây dài bằng
+     không nên cây nhìn như bị đứt làm đôi. */
+  var motCon = [
+    { id: 'A', name: 'Ông Tổ', gender: 'Nam', spouse: 'B' },
+    { id: 'B', name: 'Bà Tổ', gender: 'Nữ', spouse: 'A' },
+    { id: 'C', name: 'Con Một', gender: 'Nam', father: 'A', mother: 'B', spouse: 'D' },
+    { id: 'D', name: 'Dâu Cả', gender: 'Nữ', spouse: 'C' }
+  ];
+  A.setPeople(motCon.map(A.normalize), 'demo');
+  eq(soiDuongNoi(A), [], 'nha mot con van noi lien mach');
+  var L1 = A.State.links.filter(function (L) { return L.kids.indexOf('C') >= 0; })[0];
+  ok(!!L1, 'tim thay duong noi toi nguoi con');
+  ok(L1.busHi - L1.busLo > 1, 'thanh ngang co do dai that su', 'dai ' + (L1.busHi - L1.busLo));
+  ok(L1.busLo <= L1.fromX && L1.fromX <= L1.busHi, 'thanh ngang cham diem roi cua cha me');
+  ok(L1.busLo <= L1.kidX[0] && L1.kidX[0] <= L1.busHi, 'thanh ngang cham duong len con');
+  ok(Math.abs(L1.fromX - L1.kidX[0]) > 1, 'hai dau that su lech nhau, dung canh gay loi truoc day');
+
+  // Nhà một con mà người con chưa có vợ: hai đầu trùng nhau, vẫn phải liền
+  var motConDoc = [
+    { id: 'A', name: 'Ông Tổ', gender: 'Nam', spouse: 'B' },
+    { id: 'B', name: 'Bà Tổ', gender: 'Nữ', spouse: 'A' },
+    { id: 'C', name: 'Con Một', gender: 'Nam', father: 'A', mother: 'B' }
+  ];
+  A.setPeople(motConDoc.map(A.normalize), 'demo');
+  eq(soiDuongNoi(A), [], 'hai dau trung nhau van tinh la lien mach');
+
+  // Cha mẹ một con nhưng không khai vợ chồng: điểm rơi ngay giữa thẻ cha
+  var moCoi = [
+    { id: 'A', name: 'Ông Một Mình', gender: 'Nam' },
+    { id: 'C', name: 'Con', gender: 'Nam', father: 'A' }
+  ];
+  A.setPeople(moCoi.map(A.normalize), 'demo');
+  eq(soiDuongNoi(A), [], 'cha don than mot con van noi lien mach');
 
   // Ông có hai vợ, con riêng mỗi bên phải rơi xuống đúng khe của cặp mình
   var ds = [

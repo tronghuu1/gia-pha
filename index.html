@@ -1069,6 +1069,23 @@ function buildIndex(){
     p.spouse.forEach(function(s){ S.sp.get(p.id).add(s); S.sp.get(s).add(p.id); });
     if(p.father && p.mother){ S.sp.get(p.father).add(p.mother); S.sp.get(p.mother).add(p.father); }
   });
+  /* Số đời của cả dòng họ, đếm theo dữ liệu chứ không theo phần đang hiện.
+     Cây gập bớt nhánh thì phần hiện chỉ còn vài đời, nhưng họ vẫn bấy nhiêu. */
+  var sau=new Map();
+  var doSau=function(id){
+    if(sau.has(id)) return sau.get(id);
+    sau.set(id,1);
+    var p=S.byId.get(id), v=1;
+    if(p){
+      if(p.father) v=Math.max(v,doSau(p.father)+1);
+      if(p.mother) v=Math.max(v,doSau(p.mother)+1);
+    }
+    sau.set(id,v);
+    return v;
+  };
+  S.genCount=0;
+  S.people.forEach(function(p){ S.genCount=Math.max(S.genCount,doSau(p.id)); });
+
   var byBirth=function(a,b){
     var pa=S.byId.get(a), pb=S.byId.get(b);
     var ya=pa.bd&&pa.bd.y?pa.bd.y:9999, yb=pb.bd&&pb.bd.y?pb.bd.y:9999;
@@ -1221,7 +1238,12 @@ function render(){
         }
         var busY=(b.depth+1)*ROW-GEN_GAP/2+gi*7;
         var xs=list.map(function(k){ return k.ownX+CARD_W/2; });
-        var lo=Math.min.apply(null,xs), hi=Math.max.apply(null,xs);
+        /* Thanh ngang phải với tới cả điểm rơi của cặp vợ chồng, không chỉ
+           trải từ con trái nhất tới con phải nhất. Nhà một con thì thanh đó
+           dài bằng không, đường dọc của cha mẹ và đường dọc của con đứng rời
+           nhau, nhìn như cây bị đứt. */
+        var lo=Math.min(Math.min.apply(null,xs),fromX);
+        var hi=Math.max(Math.max.apply(null,xs),fromX);
         d1+="M"+fromX+" "+fromY+"V"+busY+" ";
         d1+="M"+lo+" "+busY+"H"+hi+" ";
         xs.forEach(function(cx){ d1+="M"+cx+" "+busY+"V"+((b.depth+1)*ROW)+" "; });
@@ -1229,7 +1251,8 @@ function render(){
         S.links.push({
           anchor:b.id,
           spouse:(idx<b.sps.length)?b.sps[idx]:null,
-          fromX:fromX, fromY:fromY, busY:busY,
+          fromX:fromX, fromY:fromY, busY:busY, busLo:lo, busHi:hi,
+          kidX:xs.slice(),
           kids:list.map(function(k){ return k.id; })
         });
       });
@@ -1718,7 +1741,7 @@ function renderStats(){
   var h='<div class="ph"><h3>Dòng họ theo con số</h3></div>'+
     '<div class="stats">'+
       '<div><b>'+P.length+'</b><s>thành viên</s></div>'+
-      '<div><b>'+(State.maxDepth+1)+'</b><s>đời</s></div>'+
+      '<div><b>'+(State.genCount||State.maxDepth+1)+'</b><s>đời</s></div>'+
       '<div><b>'+alive+'</b><s>còn sống</s></div>'+
       '<div><b>'+(P.length-alive)+'</b><s>đã mất</s></div>'+
     '</div><div class="pb" style="padding:12px 14px">'+
@@ -1925,7 +1948,7 @@ function updateChrome(){
   $("#famName").textContent=title;
   document.title=title;
   var src={sheet:"Google Sheet",script:"Google Sheet",local:"data.csv",paste:"dữ liệu dán tay",demo:"dữ liệu mẫu"}[S.source]||S.source;
-  $("#famSub").textContent=P.length?(P.length+" thành viên · "+(S.maxDepth+1)+" đời · "+src):"Chưa có dữ liệu";
+  $("#famSub").textContent=P.length?(P.length+" thành viên · "+(S.genCount||S.maxDepth+1)+" đời · "+src):"Chưa có dữ liệu";
   $("#btnAdd").hidden=!canEditAny();
   var bu=$("#btnUser");
   bu.hidden=!Api.on;
