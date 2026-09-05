@@ -135,6 +135,18 @@ Khi bạn thêm vợ cho một người, script tự điền ngược lại vào
 
 ---
 
+## Khi họ đông
+
+Cây ngang có giới hạn vật lý. Một dòng họ 129 người trải ra khoảng 13000 điểm ảnh, thu cho vừa màn hình thì chữ còn chưa tới 2 điểm ảnh, không ai đọc nổi. Trang xử lý bằng hai cách.
+
+**Gập nhánh.** Dưới mỗi thẻ có người con là một nút tròn nhỏ. Bấm dấu ▾ để gập cả nhánh con cháu, bấm dấu ▸ để mở lại, con số bên cạnh là số người đang ẩn. Cây hẹp lại thật sự chứ không phải mờ đi. Tìm kiếm một người đang nằm trong nhánh bị gập thì trang tự mở đường xuống tới họ.
+
+**Không thu vừa màn hình khi cây quá lớn.** Lần đầu mở, nếu cây rộng quá thì trang gập bớt các nhánh sâu và mở ở cỡ chữ đọc được, đặt tại gốc, để bạn tự kéo ngang. Một dải nhắc hiện ra cho biết đang ẩn bao nhiêu người, kèm nút Mở hết.
+
+Bản in luôn mở hết nhánh, kể cả nhánh đang gập trên màn hình.
+
+---
+
 ## Ngày giỗ
 
 Điền `nam_mat` đủ ngày tháng năm dương lịch là trang tự quy sang âm lịch và nhắc. Nếu trong nhà đã quen một ngày giỗ âm lịch cố định khác, điền thẳng vào cột `ngay_gio` theo dạng `15/7`, giá trị này được ưu tiên.
@@ -189,7 +201,9 @@ Tab `TaiKhoan` nằm chung file Sheet với gia phả. Nếu bạn chia sẻ fil
 
 Chạy `test\chay-kiem-thu.cmd`. Nếu máy chưa cài Node, script tự mượn Node có sẵn bên trong VS Code.
 
-Hai bộ, tổng 173 mục:
+Muốn soi một tệp CSV gia phả trước khi nạp vào Sheet thì chạy `node test\kiem-du-lieu.js duong-dan.csv`. Nó chạy tệp đó qua đúng bộ máy của trang để bắt mã trùng, mã cha mẹ trỏ vào khoảng không, vợ chồng khai một chiều, vòng lặp tổ tiên, con sinh trước cha mẹ và thẻ đè lên nhau.
+
+Hai bộ, tổng 312 mục:
 
 | Bộ | Kiểm cái gì |
 |---|---|

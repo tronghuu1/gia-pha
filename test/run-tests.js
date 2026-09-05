@@ -419,41 +419,58 @@ group('11d. Xuat ban in va PDF');
 (function () {
   A.setPeople(A.DEMO.map(A.normalize), 'demo');
   var full = A.State.people.length;
+  var doc = env.dom.document;
 
   noThrow(function () { A.openPrint(); }, 'mo duoc hop xuat PDF');
 
-  // Một trang lớn, kèm bảng danh sách
-  var r = A.setupPrint({ mode: 'one', table: true });
+  // Cây, một trang lớn
+  var r = A.setupPrint({ kind: 'tree', fit: 'one' });
+  eq(r.kind, 'tree', 'in cay');
   ok(r.wmm > 0 && r.hmm > 0, 'tinh ra kho trang', r.wmm + 'x' + r.hmm + 'mm');
   ok(r.wmm <= 4800 && r.hmm <= 4800, 'kho trang khong vuot gioi han cua tep PDF');
-  ok(!!env.dom.document.querySelector('#printHead'), 'co khoi tieu de ban in');
-  ok(!!env.dom.document.querySelector('#printTable'), 'co bang danh sach thanh vien');
-  var css = env.dom.document.querySelector('#printPage');
+  ok(!!doc.querySelector('#printHead'), 'co khoi tieu de ban in');
+  ok(!doc.querySelector('#printList'), 'in cay thi khong kem ban ke');
+  ok(!doc.querySelector('#printTable'), 'in cay thi khong kem bang');
+  ok(doc.body.classList.contains('print-tree'), 'danh dau che do in cay');
+  var css = doc.querySelector('#printPage');
   ok(!!css && /@page\{size:[\d.]+mm [\d.]+mm/.test(css.textContent), 'dat kho trang bang @page', css && css.textContent);
-
   A.teardownPrint();
-  ok(!env.dom.document.querySelector('#printHead'), 'don sach khoi tieu de sau khi in');
-  ok(!env.dom.document.querySelector('#printPage'), 'don sach kho trang sau khi in');
+
+  ok(!doc.querySelector('#printHead'), 'don sach khoi tieu de sau khi in');
+  ok(!doc.querySelector('#printPage'), 'don sach kho trang sau khi in');
+  ok(!doc.body.classList.contains('print-tree'), 'go danh dau che do in');
   eq(A.State.people.length, full, 'so nguoi tro lai nhu cu sau khi in');
 
-  // Không kèm bảng
-  A.setupPrint({ mode: 'fit', paper: 'a4', table: false });
-  ok(!env.dom.document.querySelector('#printTable'), 'bo bang danh sach khi khong chon');
+  // Bản kê luôn là A4 dọc, đây là chỗ trước đây bảng bị kéo giãn theo bề rộng cây
+  var L = A.setupPrint({ kind: 'list', note: true });
+  eq([L.wmm, L.hmm], [210, 297], 'ban ke luon A4 doc du cay rong bao nhieu');
+  ok(!!doc.querySelector('#printList'), 'co ban ke');
+  ok(doc.body.classList.contains('print-list'), 'danh dau che do in ban ke');
+  var pl = doc.querySelector('#printList').innerHTML;
+  ok(/Đời thứ I\b/.test(pl), 'ban ke chia theo doi');
+  ok(pl.indexOf('Nguyễn Văn Đại') >= 0, 'co ten nguoi trong ban ke');
+  ok(/Con ông|Con bà/.test(pl), 'co dong cha me');
+  ok(pl.indexOf('Con:') >= 0, 'co dong liet ke cac con');
+  ok(pl.indexOf('Người khai lập chi họ tại Duy Tiên') >= 0, 'ghi chu duoc dua vao ban ke');
+  A.teardownPrint();
+
+  var L2 = A.setupPrint({ kind: 'list', note: false });
+  ok(doc.querySelector('#printList').innerHTML.indexOf('Người khai lập chi họ tại Duy Tiên') < 0,
+     'bo ghi chu khi khong chon');
   A.teardownPrint();
 
   // Vừa một khổ giấy thì phải thu nhỏ lại
-  var one = A.setupPrint({ mode: 'one', table: false }); A.teardownPrint();
-  var a4 = A.setupPrint({ mode: 'fit', paper: 'a4', table: false }); A.teardownPrint();
-  var a3 = A.setupPrint({ mode: 'fit', paper: 'a3', table: false }); A.teardownPrint();
+  var one = A.setupPrint({ kind: 'tree', fit: 'one' }); A.teardownPrint();
+  var a4 = A.setupPrint({ kind: 'tree', fit: 'fit', paper: 'a4' }); A.teardownPrint();
+  var a3 = A.setupPrint({ kind: 'tree', fit: 'fit', paper: 'a3' }); A.teardownPrint();
   ok(a4.k < one.k, 'kho A4 thu nho hon so voi trang lon');
   ok(a3.k > a4.k, 'kho A3 cho phep to hon A4');
   eq([a4.wmm, a4.hmm], [297, 210], 'A4 nam ngang');
   eq([a3.wmm, a3.hmm], [420, 297], 'A3 nam ngang');
 
   // In riêng một chi
-  var chi3 = A.State.chiList.filter(function (c) { return c.id === '3'; })[0];
-  ok(!!chi3, 'tim thay chi ong Hung');
-  A.setupPrint({ mode: 'one', table: true, branch: '3' });
+  ok(A.State.chiList.some(function (c) { return c.id === '3'; }), 'tim thay chi ong Hung');
+  A.setupPrint({ kind: 'tree', fit: 'one', branch: '3' });
   ok(A.State.people.length < full, 'in mot chi thi cay nho lai', A.State.people.length + '/' + full);
   ok(A.State.byId.has('9') && A.State.byId.has('16'), 'con chau trong chi van co mat');
   ok(!A.State.byId.has('13'), 'nguoi chi khac khong lot vao');
@@ -465,6 +482,69 @@ group('11d. Xuat ban in va PDF');
   eq(A.State.byId.get('3').father, '1', 'ma cha cua goc chi khong bi xoa mat');
   eq(A.State.byId.get('9').father, '3', 'quan he trong chi con nguyen');
   ok(A.State.pos.size === full, 've lai duoc ca cay sau khi in');
+
+  // Nhánh đang gập trên màn hình vẫn phải in ra đầy đủ
+  A.State.collapsed = new Set(['3']);
+  A.redrawTree();
+  ok(A.State.pos.size < full, 'tren man hinh dang gap bot');
+  A.setupPrint({ kind: 'tree', fit: 'one' });
+  eq(A.State.pos.size, full, 'ban in mo het nhanh');
+  A.teardownPrint();
+  eq(A.State.collapsed.size, 1, 'sau khi in tra lai dung nhanh dang gap');
+  A.unfoldAll();
+})();
+
+/* ---------- 11f. gập nhánh ---------- */
+group('11f. Gap nhanh tren cay ngang');
+(function () {
+  A.State.didAutoFit = true;          // tắt gập tự động để kiểm thủ công
+  A.unfoldAll();
+  A.setPeople(A.DEMO.map(A.normalize), 'demo');
+  var full = A.State.people.length;
+  eq(A.State.pos.size, full, 'mo het thi ca 19 nguoi deu co cho');
+  var rongMo = A.State.bbox.w;
+
+  // Ông Hùng có con 9 và 11, cháu 16, 17, 18. Dâu rể về nhánh: 10 và 12.
+  eq(A.countDesc('3'), 5, 'dem dung 5 nguoi huyet thong duoi ong Hung');
+  eq(A.countHidden('3'), 7, 'gap nhanh thi an ca dau re, thanh 7 nguoi');
+  eq(A.countDesc('16'), 0, 'nguoi khong co con thi dem bang khong');
+
+  A.toggleFold('3');
+  ok(A.isFolded('3'), 'da gap nhanh ong Hung');
+  eq(A.State.pos.size, full - 7, 'sau khi gap thi an dung 7 nguoi');
+  ok(A.State.bbox.w < rongMo, 'cay hep lai that su chu khong chi mo di', rongMo + ' -> ' + A.State.bbox.w);
+  ok(!A.State.pos.has('9'), 'con trong nhanh bi an');
+  ok(!A.State.pos.has('16'), 'chau trong nhanh bi an');
+  ok(A.State.pos.has('3'), 'nguoi bi gap van hien');
+  ok(A.State.pos.has('13'), 'nhanh khac khong bi anh huong');
+
+  // Người bị ẩn không được biến thành một cây riêng đứng cạnh
+  eq(A.State.blocks.length, 1, 'van chi co mot goc cay');
+
+  var card = env.dom.document.querySelector('#cards .card[data-id="3"]');
+  var fold = card && card.querySelector('.fold');
+  ok(!!fold, 'the co nut gap');
+  ok(fold.textContent.indexOf('7') >= 0, 'nut hien so nguoi dang an', fold.textContent);
+  ok(fold.classList.contains('on'), 'nut sang khi dang gap');
+
+  // Chọn một người đang bị ẩn thì phải tự mở đường xuống
+  A.select('16', true);
+  ok(!A.isFolded('3'), 'chon nguoi bi an thi tu mo nhanh cha ong');
+  ok(A.State.pos.has('16'), 'nguoi do hien ra');
+  eq(A.State.pos.size, full, 'ca cay tro lai day du');
+
+  // Gập tự động khi cây quá rộng
+  A.State.didAutoFit = false;
+  A.unfoldAll();
+  var d = A.autoFit(600);            // ép ngưỡng thật hẹp
+  ok(d > 0, 'nhan ra cay qua rong va gap bot', 'gap tu doi ' + d);
+  ok(A.State.collapsed.size > 0, 'co nhanh bi gap');
+  ok(A.State.bbox.w <= 600 || d === 1, 'gap toi khi vua nguong');
+
+  A.State.didAutoFit = true;
+  A.unfoldAll();
+  eq(A.State.collapsed.size, 0, 'mo het thi khong con nhanh nao bi gap');
+  A.setPeople(A.DEMO.map(A.normalize), 'demo');
 })();
 
 /* ---------- 11c. lọc danh sách cha, mẹ, vợ chồng ---------- */
