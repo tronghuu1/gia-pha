@@ -305,6 +305,28 @@ group('11. Tep mau khop voi cot cua script');
   ok(accWant.indexOf('mat_khau') >= 0 && accWant.indexOf('muoi') >= 0, 'co cot chuoi bam va chuoi muoi');
 })();
 
+/* ================== 12. bảng cũ tự đổi tên cột ================== */
+group('12. Bang cu tu doi ten cot');
+(function () {
+  var sh = stubs._ss.getSheetByName('GiaPha');
+  var col = 13; // cột noi_sinh
+
+  // Ghi một giá trị vào cột đó rồi hạ tiêu đề về tên cũ
+  sh.getRange(2, col, 1, 1).setValue('Duy Tiên - Hà Nam');
+  var oldHead = S.COLS.map(function (c) { return c[0]; });
+  oldHead[col - 1] = 'que_quan';
+  sh.getRange(1, 1, 1, oldHead.length).setValues([oldHead]);
+  eq(sh.getRange(1, col, 1, 1).getDisplayValues()[0][0], 'que_quan', 'da ha tieu de ve ten cu');
+
+  var before = post({ action: 'list' }).rows.length;
+  eq(sh.getRange(1, col, 1, 1).getDisplayValues()[0][0], 'noi_sinh', 'tieu de cu tu doi sang noi_sinh');
+  eq(sh.getRange(2, col, 1, 1).getDisplayValues()[0][0], 'Duy Tiên - Hà Nam', 'du lieu ben duoi khong bi dung toi');
+
+  var after = post({ action: 'list' });
+  eq(after.rows.length, before, 'so nguoi khong doi sau khi doi ten cot');
+  ok(after.rows[0].origin === 'Duy Tiên - Hà Nam', 'gia tri van ve dung truong origin');
+})();
+
 /* ================== tổng kết ================== */
 console.log('\n' + '='.repeat(52));
 console.log('DAT ' + pass + ' / ' + (pass + fail));

@@ -699,7 +699,7 @@ var ALIAS={
   mother:  ["meid","idme","mame","me","mother","motherid"],
   spouse:  ["vochongid","idvochong","vochong","vo","chong","spouse","spouseid","bandoi","mavochong"],
   gen:     ["doi","doithu","doithumay","generation","gen","doiso"],
-  origin:  ["quequan","que","noisinh","origin","nguyenquan"],
+  origin:  ["noisinh","noisanh","quequan","que","origin","nguyenquan","sinhtai"],
   burial:  ["noiantang","motphan","antang","noian","burial","phanmo"],
   role:    ["vaitro","chucvu","danhxung","chuc","role","title","ghichuvaitro"],
   note:    ["ghichu","note","notes","mota","tieusu","chuthich","dienbien"]
@@ -792,14 +792,14 @@ var DEMO=[
  {id:"6", name:"Phạm Văn Tú", gender:"Nam", birth:"1946", death:"1999", spouse:"5", gen:"2"},
  {id:"7", name:"Nguyễn Văn Bình", gender:"Nam", birth:"1955", father:"1", mother:"2", spouse:"8", gen:"2"},
  {id:"8", name:"Đỗ Thị Hạnh", gender:"Nữ", birth:"1958", spouse:"7", gen:"2"},
- {id:"9", name:"Nguyễn Văn Trọng", gender:"Nam", birth:"1972", father:"3", mother:"4", spouse:"10", gen:"3"},
+ {id:"9", name:"Nguyễn Văn Trọng", gender:"Nam", birth:"1972", father:"3", mother:"4", spouse:"10", gen:"3", origin:"Hà Nội"},
  {id:"10",name:"Vũ Thị Hoa", gender:"Nữ", birth:"1975", spouse:"9", gen:"3"},
  {id:"11",name:"Nguyễn Thị Thu", gender:"Nữ", birth:"1976", father:"3", mother:"4", spouse:"12", gen:"3"},
  {id:"12",name:"Hoàng Minh Đức", gender:"Nam", birth:"1973", spouse:"11", gen:"3"},
  {id:"13",name:"Phạm Thị Ngọc", gender:"Nữ", birth:"1974", father:"6", mother:"5", gen:"3"},
  {id:"14",name:"Nguyễn Văn Sơn", gender:"Nam", birth:"1982", father:"7", mother:"8", spouse:"15", gen:"3"},
  {id:"15",name:"Trần Thị Quỳnh", gender:"Nữ", birth:"1985", spouse:"14", gen:"3"},
- {id:"16",name:"Nguyễn Minh Khôi", gender:"Nam", birth:"2001", father:"9", mother:"10", gen:"4"},
+ {id:"16",name:"Nguyễn Minh Khôi", gender:"Nam", birth:"2001", father:"9", mother:"10", gen:"4", origin:"Hà Nội"},
  {id:"17",name:"Nguyễn Bảo Anh", gender:"Nữ", birth:"2005", father:"9", mother:"10", gen:"4"},
  {id:"18",name:"Hoàng Gia Bảo", gender:"Nam", birth:"2003", father:"12", mother:"11", gen:"4"},
  {id:"19",name:"Nguyễn Văn An", gender:"Nam", birth:"2012", father:"14", mother:"15", gen:"4"}
@@ -1222,7 +1222,7 @@ function openDrawer(id){
     if(p.gioAuto){ var q=el("span","cc"," · quy từ ngày mất"); g.appendChild(q); }
     row("Ngày giỗ",g);
   }
-  if(p.origin) row("Quê quán",p.origin);
+  if(p.origin) row("Nơi sinh",p.origin);
   if(p.burial) row("Nơi an táng",p.burial);
   body.appendChild(dl);
   if(p.note){
@@ -1677,7 +1677,7 @@ function field(host,label,hint){
 
 /* ---------- cài đặt & hướng dẫn ---------- */
 var CSV_TEMPLATE=
-"id,ho_ten,ten_thuong_goi,gioi_tinh,nam_sinh,nam_mat,ngay_gio,anh,cha_id,me_id,vo_chong_id,vai_tro,que_quan,noi_an_tang,ghi_chu\n"+
+"id,ho_ten,ten_thuong_goi,gioi_tinh,nam_sinh,nam_mat,ngay_gio,anh,cha_id,me_id,vo_chong_id,vai_tro,noi_sinh,noi_an_tang,ghi_chu\n"+
 "1,Nguyễn Văn Đại,,Nam,1918,12/03/1996,,,,,2,Thuỷ tổ,Duy Tiên - Hà Nam,,\n"+
 "2,Trần Thị Nhàn,,Nữ,1922,05/08/2001,,,,,1,,,,\n"+
 "3,Nguyễn Văn Hùng,,Nam,1945,,,,1,2,4,Trưởng chi,,,\n"+
@@ -2387,7 +2387,7 @@ function openPerson(id,preset){
 
     b.appendChild(el("div","rule")).appendChild(el("b","","Thêm"));
     var g5=el("div","grid2"); b.appendChild(g5);
-    f=field(g5,"Quê quán");
+    f=field(g5,"Nơi sinh","nơi chào đời, không phải quê gốc của cả họ");
     var iOrigin=el("input"); iOrigin.value=p.origin; f.appendChild(iOrigin);
     f=field(g5,"Nơi an táng");
     var iBurial=el("input"); iBurial.value=p.burial; f.appendChild(iBurial);

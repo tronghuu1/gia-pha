@@ -175,6 +175,16 @@ group('3. Doc CSV');
   eq(ps[0]._row, 2, 'nho so hang trong Sheet de mo dung dong');
 })();
 
+(function () {
+  // Bảng cũ đặt tên cột là que_quan, bảng mới là noi_sinh. Cả hai phải đọc được.
+  var cu = A.rowsToPeople(A.parseCSV('id,ho_ten,que_quan\n1,Nguyễn A,Hà Nam\n'));
+  eq(cu[0].origin, 'Hà Nam', 'bang cu dat ten cot que_quan van doc duoc');
+  var moi = A.rowsToPeople(A.parseCSV('id,ho_ten,noi_sinh\n1,Nguyễn A,Hà Nội\n'));
+  eq(moi[0].origin, 'Hà Nội', 'bang moi dat ten cot noi_sinh doc duoc');
+  var tv = A.rowsToPeople(A.parseCSV('id,ho_ten,Nơi sinh\n1,Nguyễn A,Huế\n'));
+  eq(tv[0].origin, 'Huế', 'tieu de tieng Viet co dau cung doc duoc');
+})();
+
 ok(A.fixPhoto('https://drive.google.com/file/d/1AbCdEfGhIjKlMnOp/view?usp=sharing')
    === 'https://drive.google.com/thumbnail?id=1AbCdEfGhIjKlMnOp&sz=w400', 'doi link Drive thanh anh hien duoc');
 eq(A.extractId('https://docs.google.com/spreadsheets/d/1sjH0CANvtWYkoM0wYBAYfMTwWB/edit?gid=0'),
@@ -401,7 +411,8 @@ group('11a. Tep mau-gia-pha.csv');
   var ps = A.rowsToPeople(rows);
   eq(ps.length, 10, 'doc duoc 10 nguoi mau');
   eq(ps[0].name, 'Nguyễn Văn Đại', 'dau tieng Viet doc ra dung');
-  eq(ps[0].origin, 'Duy Tiên - Hà Nam', 'que quan co dau doc ra dung');
+  eq(rows[0][12], 'noi_sinh', 'cot thu 13 doi ten thanh noi_sinh');
+  eq(ps[0].origin, 'Duy Tiên - Hà Nam', 'noi sinh co dau doc ra dung');
   eq(ps[0].role, 'Thuỷ tổ', 'vai tro co dau doc ra dung');
 
   // Không được lẫn ký tự thay thế của bảng mã hỏng

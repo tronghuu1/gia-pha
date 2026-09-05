@@ -114,7 +114,8 @@ Bạn không cần gõ tay các cột này nếu dùng form trên web. Bảng d�
 | `cha_id`, `me_id` | Mã của cha và mẹ. Đây là thứ dựng nên cây | `3` và `4` |
 | `vo_chong_id` | Mã vợ hoặc chồng, nhiều người thì ngăn bằng dấu phẩy | `8` |
 | `vai_tro` | Hiện dưới tên bằng chữ nhỏ màu vàng | `Trưởng tộc` |
-| `que_quan`, `noi_an_tang`, `ghi_chu` | Chỉ hiện trong ngăn chi tiết | |
+| `noi_sinh` | Nơi chào đời, không phải quê gốc của cả họ | `Hà Nội` |
+| `noi_an_tang`, `ghi_chu` | Chỉ hiện trong ngăn chi tiết | |
 
 Không có cột đời. Đời được suy ra từ chuỗi cha con nên không bao giờ lệch.
 

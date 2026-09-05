@@ -50,7 +50,7 @@ var COLS = [
   ['me_id',           'mother'],
   ['vo_chong_id',     'spouse'],
   ['vai_tro',         'role'],
-  ['que_quan',        'origin'],
+  ['noi_sinh',        'origin'],
   ['noi_an_tang',     'burial'],
   ['ghi_chu',         'note']
 ];
@@ -551,11 +551,16 @@ function ensureSheet_(name, cols) {
   var head = cols.map(function (c) { return c[0]; });
   var first = sh.getRange(1, 1, 1, cols.length).getDisplayValues()[0];
 
-  if (trim_(first[0]).toLowerCase() !== head[0]) {
+  // So cả dòng tiêu đề chứ không chỉ ô đầu, để bảng cũ tự đổi được tên cột
+  // khi script đổi tên, ví dụ que_quan thành noi_sinh. Dữ liệu đọc theo vị
+  // trí cột nên việc đổi tên tiêu đề không đụng gì tới nội dung bên dưới.
+  var same = head.every(function (h, i) { return trim_(first[i]).toLowerCase() === h; });
+
+  if (!same) {
+    if (trim_(first[0]).toLowerCase() !== head[0]) fresh = true;
     sh.getRange(1, 1, 1, cols.length).setValues([head]);
     sh.getRange(1, 1, 1, cols.length).setFontWeight('bold');
     sh.setFrozenRows(1);
-    fresh = true;
   }
 
   // Giữ ô ở dạng văn bản để Sheet không đổi 05/09/1950 thành ngày tháng.
