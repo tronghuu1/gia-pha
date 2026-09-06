@@ -2082,7 +2082,10 @@ function updateChrome(){
   document.title=title;
   var src={sheet:"Google Sheet",script:"Google Sheet",local:"data.csv",paste:"dữ liệu dán tay",demo:"dữ liệu mẫu"}[S.source]||S.source;
   $("#famSub").textContent=P.length?(P.length+" thành viên · "+(S.genCount||S.maxDepth+1)+" đời · "+src):"Chưa có dữ liệu";
-  $("#btnAdd").hidden=!canEditAny();
+  /* Chỉ quản trị mới thêm người từ thanh trên cùng. Biên tập thêm qua màn
+     hình chi tiết, bằng nút Thêm con hoặc Thêm vợ, để người mới gắn thẳng vào
+     đúng chỗ trong nhánh thay vì lơ lửng chờ khai quan hệ sau. */
+  $("#btnAdd").hidden=!isAdmin();
   var bu=$("#btnUser");
   bu.hidden=!Api.on;
   $("#userLb").textContent=loggedIn()?Session.name:"Đăng nhập";
@@ -2875,7 +2878,14 @@ function openPerson(id,preset){
   if(!Api.on){ toast("Cần nối cổng ghi trước khi thêm hoặc sửa."); openSetup(); return; }
   if(!loggedIn()){ toast("Bạn cần đăng nhập để thêm hoặc sửa."); openLogin(); return; }
   if(id&&!canEdit(id)){ toast("Người này nằm ngoài nhánh bạn được giao."); return; }
-  if(!id&&!canEditAny()){ toast("Tài khoản của bạn chỉ có quyền xem."); return; }
+  if(!id){
+    if(!canEditAny()){ toast("Tài khoản của bạn chỉ có quyền xem."); return; }
+    var coGan=!!(preset&&(preset.father||preset.mother||(preset.spouse&&preset.spouse.length)));
+    if(!isAdmin()&&!coGan){
+      toast("Mở một người trong nhánh bạn phụ trách rồi bấm Thêm con hoặc Thêm vợ.");
+      return;
+    }
+  }
   var src=id?State.byId.get(id):null;
   var p=Object.assign(blankPerson(),src?{
     id:src.id,name:src.name,alias:src.alias,gender:src.gender,birth:src.birth,death:src.death,

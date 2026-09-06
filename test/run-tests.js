@@ -328,6 +328,48 @@ ok(A.canEdit('9') === true && A.canEdit('14') === true && A.canEdit('13') === fa
 A.setSession({ user: 'trong', name: 'Trong', role: 'bien_tap', branches: [] });
 ok(A.canEditAny() === false, 'bien tap chua duoc giao nhanh thi khong them duoc ai');
 
+/* Nút Thêm người trên thanh trên cùng chỉ dành cho quản trị */
+(function () {
+  var btn = env.dom.document.querySelector('#btnAdd');
+  var urlCu = A.Api.url;
+  A.Api.url = 'https://script.google.com/macros/s/x/exec';
+
+  A.setSession(null);
+  A.updateChrome();
+  ok(btn.hidden, 'chua dang nhap thi khong thay nut Them nguoi');
+
+  A.setSession({ user: 'bt', name: 'Bien tap', role: 'bien_tap', branches: ['3'] });
+  A.updateChrome();
+  ok(btn.hidden, 'bien tap cung khong thay nut Them nguoi tren thanh tren cung');
+
+  A.setSession({ user: 'ad', name: 'Quan tri', role: 'quan_tri', branches: [] });
+  A.updateChrome();
+  ok(!btn.hidden, 'quan tri thay nut Them nguoi');
+
+  // Biên tập vẫn phải thêm được qua màn hình chi tiết
+  A.setSession({ user: 'bt', name: 'Bien tap', role: 'bien_tap', branches: ['3'] });
+  var host = env.dom.document.querySelector('#modalHost');
+  host.innerHTML = '';
+  A.openPerson(null);
+  ok(!host.firstChild, 'bien tap goi Them nguoi tay khong thi bi chan');
+
+  A.openPerson(null, { father: '3' });
+  ok(!!host.firstChild, 'nhung Them con tu mot nguoi trong nhanh thi mo duoc');
+  host.innerHTML = '';
+
+  A.openPerson(null, { spouse: ['9'] });
+  ok(!!host.firstChild, 'Them vo tu mot nguoi trong nhanh cung mo duoc');
+  host.innerHTML = '';
+
+  A.setSession({ user: 'ad', name: 'Quan tri', role: 'quan_tri', branches: [] });
+  A.openPerson(null);
+  ok(!!host.firstChild, 'quan tri van them nguoi tay khong duoc');
+  host.innerHTML = '';
+
+  A.Api.url = urlCu;
+  A.setSession(null);
+})();
+
 /* ---------- 8. tìm kiếm và dòng dõi ---------- */
 group('8. Tim kiem va dong doi');
 (function () {

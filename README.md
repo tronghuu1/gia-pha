@@ -75,6 +75,8 @@ Ai mở link cũng xem được **toàn bộ** cây, kể cả khi chưa đăng 
 | Biên tập | Toàn bộ | Chỉ trong những nhánh được giao |
 | Chỉ xem | Toàn bộ | Không sửa gì |
 
+Nút **Thêm người** trên thanh trên cùng chỉ dành cho quản trị. Biên tập thêm người bằng cách mở một người trong nhánh mình phụ trách rồi bấm **Thêm con** hoặc **Thêm vợ** trong ngăn chi tiết. Làm vậy thì người mới gắn thẳng vào đúng chỗ, thay vì tạo ra một người lơ lửng chờ khai quan hệ sau.
+
 ### Giao nhánh cho một người
 
 Đăng nhập bằng tài khoản quản trị, bấm tên mình ở thanh trên cùng, chọn **Quản lý tài khoản → Thêm tài khoản**. Đặt quyền là *Biên tập*, rồi ở ô **Nhánh được giao** chọn người đứng đầu nhánh.
