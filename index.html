@@ -533,6 +533,40 @@ dl.facts dd.note{font-size:13px;color:var(--ink-2);line-height:1.55;grid-column:
 }
 
 /* nhắc khi quan hệ cha mẹ vô lý */
+/* ô chọn người có tìm kiếm */
+.pick{position:relative}
+.pick-in{
+  width:100%;padding:8px 30px 8px 10px;border:1px solid var(--line);
+  border-radius:8px;background:var(--surface-2);
+}
+.pick.co .pick-in{font-weight:500;color:var(--ink)}
+.pick-in::placeholder{color:var(--ink-3);font-weight:400}
+.pick-x{
+  position:absolute;right:6px;top:6px;width:22px;height:22px;border-radius:6px;
+  color:var(--ink-3);font-size:17px;line-height:1;display:none;place-items:center;
+}
+.pick.co .pick-x{display:grid}
+.pick-x:hover{background:var(--surface);color:var(--accent)}
+.pick-list{
+  position:absolute;left:0;right:0;top:calc(100% + 5px);z-index:90;
+  max-height:270px;overflow:auto;padding:5px;
+  background:var(--surface);border:1px solid var(--line);border-radius:10px;
+  box-shadow:var(--shadow-3);
+}
+.pick-g{
+  font-size:10px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;
+  color:var(--gold);padding:8px 8px 4px;
+}
+.pick-i{
+  display:flex;width:100%;gap:9px;align-items:baseline;
+  padding:6px 8px;border-radius:7px;text-align:left;
+}
+.pick-i:hover,.pick-i.on{background:var(--surface-2)}
+.pick-i.dang{box-shadow:inset 0 0 0 1px var(--accent)}
+.pick-i .pi-n{font-family:var(--serif);font-size:14px;font-weight:600}
+.pick-i .pi-y{margin-left:auto;font-size:11px;color:var(--ink-3);font-variant-numeric:tabular-nums;white-space:nowrap}
+.pick-empty,.pick-more{padding:9px;font-size:12.5px;color:var(--ink-3)}
+
 .rel-warn{
   background:var(--accent-soft);border:1px solid var(--accent);border-radius:9px;
   padding:9px 12px;margin:-4px 0 13px;font-size:12.5px;line-height:1.55;color:var(--ink);
@@ -2678,6 +2712,24 @@ function relCandidates(kind,ctx){
     (good?fit:other).push(q);
   });
 
+  /* Đã chọn cha thì mẹ gần như chắc chắn nằm trong số các bà vợ của ông ấy.
+     Tách riêng nhóm đó lên đầu thay vì bắt dò giữa cả trăm người. Vẫn để
+     những người còn lại phía dưới, vì gia phả cũ hay khai thiếu vợ chồng. */
+  var pair=[], pairLabel="";
+  if((kind==="father"||kind==="mother") && ctx.pairWith && State.byId.has(ctx.pairWith)){
+    var nguoiKia=State.byId.get(ctx.pairWith);
+    var vc=State.sp.get(ctx.pairWith)||new Set();
+    var trong={};
+    [fit,other].forEach(function(arr){
+      arr.forEach(function(q){ if(vc.has(q.id)&&!trong[q.id]){ trong[q.id]=1; pair.push(q); } });
+    });
+    if(pair.length){
+      fit=fit.filter(function(q){ return !trong[q.id]; });
+      other=other.filter(function(q){ return !trong[q.id]; });
+      pairLabel=(kind==="mother"?"Vợ của ":"Chồng của ")+nguoiKia.name;
+    }
+  }
+
   var byName=function(a,b){ return bare(a.name).localeCompare(bare(b.name)); };
   if(kind==="spouse"){
     fit.sort(function(a,b){
@@ -2693,30 +2745,108 @@ function relCandidates(kind,ctx){
     });
   }
   other.sort(byName);
-  return {fit:fit,other:other};
+  pair.sort(byName);
+  return {pair:pair,pairLabel:pairLabel,fit:fit,other:other};
 }
 
-/* Đổ dữ liệu vào một ô chọn, giữ nguyên giá trị đang có kể cả khi nó
-   không còn hợp lý, để việc mở form ra không âm thầm xoá mất quan hệ cũ. */
-function fillRelSelect(sel,kind,ctx,val){
-  var c=relCandidates(kind,ctx);
-  if(val&&State.byId.has(val)){
-    var seen=c.fit.concat(c.other).some(function(q){ return q.id===val; });
-    if(!seen) c.other.unshift(State.byId.get(val));
-  }
-  while(sel.childNodes.length) sel.removeChild(sel.childNodes[0]);
-  sel.appendChild(new Option("— không rõ —",""));
-  addGroup("Phù hợp",c.fit);
-  addGroup("Ít khả năng",c.other);
-  sel.value=val||"";
+/* Ô chọn người có tìm kiếm. Với một trăm ba mươi người thì ô xổ xuống của
+   trình duyệt bắt cuộn tay, trên điện thoại càng khổ. Gõ vài chữ không dấu
+   cũng ra. Trả về một đối tượng, dùng .el để gắn vào form và .value để đọc
+   hoặc đặt mã người đang chọn. */
+function personPicker(kind,layCtx,val){
+  var wrap=el("div","pick");
+  var inp=el("input","pick-in"); inp.type="text"; inp.setAttribute("autocomplete","off");
+  var xoa=el("button","pick-x","×"); xoa.type="button"; xoa.title="Bỏ chọn";
+  var list=el("div","pick-list"); list.hidden=true;
+  wrap.appendChild(inp); wrap.appendChild(xoa); wrap.appendChild(list);
 
-  function addGroup(label,list){
-    if(!list.length) return;
-    var g=el("optgroup");
-    g.label=label+" ("+list.length+")";
-    list.forEach(function(q){ g.appendChild(new Option(personLabel(q),q.id)); });
-    sel.appendChild(g);
+  var cur="", items=[], idx=-1, doiCb=null;
+
+  function nhan(id){ var q=State.byId.get(id); return q?personLabel(q):""; }
+  function hienNhan(){
+    inp.value=cur?nhan(cur):"";
+    inp.placeholder=cur?"":"— không rõ — · gõ tên để tìm";
+    wrap.classList.toggle("co",!!cur);
   }
+  function xoaCon(e){ while(e.childNodes.length) e.removeChild(e.childNodes[0]); }
+
+  function ve(loc){
+    xoaCon(list); items=[]; idx=-1;
+    var c=relCandidates(kind,layCtx());
+    /* Giữ lại người đang chọn dù họ không còn hợp lý, để mở form ra xem rồi
+       lưu lại không âm thầm xoá mất quan hệ cũ. */
+    if(cur&&State.byId.has(cur)){
+      var co=c.pair.concat(c.fit,c.other).some(function(q){ return q.id===cur; });
+      if(!co) c.other.unshift(State.byId.get(cur));
+    }
+    var q=bare(loc||""), tong=0;
+
+    function nhom(ten,arr){
+      var hit=arr.filter(function(p){
+        return !q || bare(p.name).indexOf(q)>=0 || bare(p.alias||"").indexOf(q)>=0;
+      });
+      if(!hit.length) return;
+      tong+=hit.length;
+      list.appendChild(el("div","pick-g",ten+" ("+hit.length+")"));
+      hit.slice(0,40).forEach(function(p){
+        var b=el("button","pick-i"+(p.id===cur?" dang":"")); b.type="button";
+        b.dataset.id=p.id;
+        b.appendChild(el("span","pi-n",p.name));
+        var y=yearsText(p); if(y) b.appendChild(el("span","pi-y",y));
+        b.onmousedown=function(e){ if(e&&e.preventDefault) e.preventDefault(); };
+        b.onclick=function(){ dat(p.id); dong(); };
+        list.appendChild(b);
+        items.push(b);
+      });
+      if(hit.length>40) list.appendChild(el("div","pick-more","còn "+(hit.length-40)+" người nữa, gõ thêm để lọc"));
+    }
+
+    nhom(c.pairLabel||"",c.pair);
+    nhom("Phù hợp",c.fit);
+    nhom("Ít khả năng",c.other);
+    if(!tong) list.appendChild(el("div","pick-empty","Không tìm thấy ai khớp."));
+  }
+
+  function mo(){ ve(""); inp.value=""; list.hidden=false; }
+  function dong(){ list.hidden=true; hienNhan(); }
+  function dat(id,im){
+    var truoc=cur;
+    cur=id||"";
+    hienNhan();
+    if(!im&&doiCb&&truoc!==cur) doiCb(cur);
+  }
+  function chon(i){
+    if(!items.length) return;
+    idx=(i+items.length)%items.length;
+    items.forEach(function(b,k){ b.classList.toggle("on",k===idx); });
+    if(items[idx].scrollIntoView) items[idx].scrollIntoView({block:"nearest"});
+  }
+
+  inp.onfocus=mo;
+  inp.oninput=function(){ list.hidden=false; ve(inp.value); };
+  inp.onblur=function(){ setTimeout(dong,150); };
+  inp.onkeydown=function(e){
+    if(e.key==="Escape"){ dong(); inp.blur(); return; }
+    if(e.key==="ArrowDown"){ e.preventDefault(); if(list.hidden) mo(); chon(idx+1); return; }
+    if(e.key==="ArrowUp"){ e.preventDefault(); chon(idx-1); return; }
+    if(e.key==="Enter"){
+      e.preventDefault();
+      if(idx>=0&&items[idx]) items[idx].click();
+      else if(items.length===1) items[0].click();
+    }
+  };
+  xoa.onclick=function(){ dat(""); dong(); inp.focus(); };
+
+  dat(val||"",true);
+  hienNhan();
+
+  return {
+    el:wrap,
+    get value(){ return cur; },
+    set value(v){ dat(v,true); },
+    onChange:function(fn){ doiCb=fn; },
+    refresh:function(){ if(!list.hidden) ve(inp.value); else hienNhan(); }
+  };
 }
 
 function openPerson(id,preset){
@@ -2799,25 +2929,28 @@ function openPerson(id,preset){
     b.appendChild(el("div","rule")).appendChild(el("b","","Quan hệ"));
 
     var g4=el("div","grid2"); b.appendChild(g4);
-    f=field(g4,"Cha");
-    var sFather=el("select"); f.appendChild(sFather);
-    f=field(g4,"Mẹ");
-    var sMother=el("select"); f.appendChild(sMother);
+    f=field(g4,"Cha","gõ tên để tìm");
+    var sFather=personPicker("father",function(){ return ctxFor("father"); },p.father);
+    f.appendChild(sFather.el);
+    f=field(g4,"Mẹ","gõ tên để tìm");
+    var sMother=personPicker("mother",function(){ return ctxFor("mother"); },p.mother);
+    f.appendChild(sMother.el);
 
     var warn=el("div","rel-warn"); warn.hidden=true; b.appendChild(warn);
 
     f=field(b,"Vợ / chồng","có thể thêm nhiều người");
     var spouses=p.spouse.slice();
     var chips=el("div","chips"); chips.style.marginBottom="7px";
-    var pick=el("div"); pick.style.display="flex"; pick.style.gap="7px";
-    var sSp=el("select"); sSp.style.flex="1";
+    var pick=el("div"); pick.style.display="flex"; pick.style.gap="7px"; pick.style.alignItems="flex-start";
+    var sSp=personPicker("spouse",function(){ return ctxFor("spouse"); },"");
+    sSp.el.style.flex="1";
     var addSp=el("button","btn sm","Thêm");
     addSp.onclick=function(){
       var v=sSp.value;
       if(v&&spouses.indexOf(v)<0){ spouses.push(v); drawChips(); refreshRel(); }
       sSp.value="";
     };
-    pick.appendChild(sSp); pick.appendChild(addSp);
+    pick.appendChild(sSp.el); pick.appendChild(addSp);
     function drawChips(){
       chips.innerHTML="";
       if(!spouses.length){ chips.appendChild(el("span","muted","Chưa chọn")); return; }
@@ -2839,13 +2972,17 @@ function openPerson(id,preset){
         selfId:p.id,
         year:(bd&&bd.y)||0,
         gender:gender,
-        exclude:(kind==="spouse")?spouses:[]
+        exclude:(kind==="spouse")?spouses:[],
+        /* Chọn cha rồi thì danh sách mẹ ưu tiên các bà vợ của ông ấy. */
+        pairWith:(kind==="mother") ? (sFather?sFather.value:"")
+               : (kind==="father") ? (sMother?sMother.value:"")
+               : ""
       };
     }
     function refreshRel(){
-      fillRelSelect(sFather,"father",ctxFor("father"),sFather.value||p.father);
-      fillRelSelect(sMother,"mother",ctxFor("mother"),sMother.value||p.mother);
-      fillRelSelect(sSp,"spouse",ctxFor("spouse"),"");
+      if(sFather) sFather.refresh();
+      if(sMother) sMother.refresh();
+      if(sSp) sSp.refresh();
       checkWarn();
     }
     function checkWarn(){
@@ -2864,8 +3001,23 @@ function openPerson(id,preset){
       warn.hidden=!msgs.length;
       warn.textContent=msgs.join(" ");
     }
-    sFather.onchange=checkWarn;
-    sMother.onchange=checkWarn;
+    /* Chọn cha xong, nếu ông ấy chỉ có một bà vợ thì điền luôn vào ô mẹ.
+       Đỡ được một lần dò cho phần lớn trường hợp. Có nhiều vợ thì để trống,
+       vì máy không đoán thay người nhập được. */
+    function tuDienBanDoi(nguon, dich, dangTrong){
+      var q=State.byId.get(nguon.value);
+      if(!q||!dangTrong()) return;
+      var vc=Array.from(State.sp.get(q.id)||[]);
+      if(vc.length===1) dich.value=vc[0];
+    }
+    sFather.onChange(function(){
+      tuDienBanDoi(sFather,sMother,function(){ return !sMother.value; });
+      refreshRel();
+    });
+    sMother.onChange(function(){
+      tuDienBanDoi(sMother,sFather,function(){ return !sFather.value; });
+      refreshRel();
+    });
     iBirth.onchange=refreshRel;
     refreshRel();
 

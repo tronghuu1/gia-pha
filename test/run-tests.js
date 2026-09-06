@@ -775,7 +775,7 @@ group('11c. Loc danh sach cha me vo chong');
 (function () {
   A.setPeople(A.DEMO.map(A.normalize), 'demo');
   var ids = function (l) { return l.map(function (q) { return q.id; }); };
-  var all = function (c) { return ids(c.fit).concat(ids(c.other)); };
+  var all = function (c) { return ids(c.pair || []).concat(ids(c.fit), ids(c.other)); };
 
   // Nguyễn Văn Trọng, sinh 1972, nam. Cha thật là số 3 sinh 1945.
   var ctx = { selfId: '9', year: 1972, gender: 'Nam', exclude: [] };
@@ -812,10 +812,85 @@ group('11c. Loc danh sach cha me vo chong');
   var leaked = late.filter(function (id) { return ids(young.fit).indexOf(id) >= 0; });
   ok(leaked.length === 0, 'khong ai sinh sau 1974 loi vao nhom cha phu hop cua nguoi sinh 1986', leaked.join(','));
 
+  // Đã chọn cha thì các bà vợ của ông ấy được tách lên nhóm riêng
+  var kemCha = A.relCandidates('mother', { selfId: '', year: 1972, gender: '', exclude: [], pairWith: '3' });
+  eq(ids(kemCha.pair), ['4'], 'chi co vo cua ong Hung nam trong nhom rieng');
+  ok(/^Vợ của /.test(kemCha.pairLabel), 'nhan nhom noi ro la vo cua ai', kemCha.pairLabel);
+  ok(ids(kemCha.fit).indexOf('4') < 0, 'khong lap lai o nhom phu hop');
+  ok(all(kemCha).indexOf('4') >= 0, 'van con trong danh sach');
+
+  var kemMe = A.relCandidates('father', { selfId: '', year: 1972, gender: '', exclude: [], pairWith: '4' });
+  eq(ids(kemMe.pair), ['3'], 'chieu nguoc lai cung vay');
+  ok(/^Chồng của /.test(kemMe.pairLabel), 'nhan doi thanh chong cua ai', kemMe.pairLabel);
+
+  var khongCap = A.relCandidates('mother', { selfId: '', year: 1972, gender: '', exclude: [] });
+  eq(khongCap.pair, [], 'chua chon cha thi khong co nhom rieng');
+  eq(khongCap.pairLabel, '', 'va khong co nhan nhom');
+
+  // Người không khai vợ chồng thì đừng dựng nhóm rỗng
+  var trong = A.relCandidates('mother', { selfId: '', year: 0, gender: '', exclude: [], pairWith: '6' });
+  ok(trong.pair.length <= 1, 'nguoi it vo chong thi nhom rieng ngan hoac khong co');
+
   // Không biết năm sinh thì không loại ai theo tuổi
   var noYear = A.relCandidates('father', { selfId: '', year: 0, gender: '', exclude: [] });
   var nam = A.State.people.filter(function (q) { return q.gender !== 'Nữ'; }).length;
   eq(ids(noYear.fit).length, nam, 'chua khai nam sinh thi moi nguoi nam deu duoc coi la phu hop');
+})();
+
+/* ---------- 11i. ô chọn người có tìm kiếm ---------- */
+group('11i. O chon nguoi co tim kiem');
+(function () {
+  A.setPeople(A.DEMO.map(A.normalize), 'demo');
+  var ctx = { selfId: '', year: 1972, gender: '', exclude: [] };
+  var pk = A.personPicker('father', function () { return ctx; }, '');
+
+  ok(!!pk.el && !!pk.el.querySelector('.pick-in'), 'co o go de tim');
+  eq(pk.value, '', 'ban dau chua chon ai');
+
+  var inp = pk.el.querySelector('.pick-in');
+  var list = pk.el.querySelector('.pick-list');
+  ok(list.hidden, 'danh sach dong luc dau');
+
+  inp.onfocus();
+  ok(!list.hidden, 'bam vao thi mo danh sach');
+  var soTatCa = list.querySelectorAll('.pick-i').length;
+  ok(soTatCa > 5, 'co nhieu nguoi de chon', 'thay ' + soTatCa);
+
+  // Gõ không dấu vẫn ra
+  inp.value = 'trong'; inp.oninput();
+  var ten = list.querySelectorAll('.pick-i .pi-n').map(function (x) { return x.textContent; });
+  ok(ten.length > 0 && ten.length < soTatCa, 'go vao thi loc bot', ten.length + '/' + soTatCa);
+  ok(ten.join('|').indexOf('Nguyễn Văn Trọng') >= 0, 'go khong dau van tim ra ten co dau');
+
+  inp.value = 'hung'; inp.oninput();
+  ten = list.querySelectorAll('.pick-i .pi-n').map(function (x) { return x.textContent; });
+  eq(ten, ['Nguyễn Văn Hùng'], 'loc dung mot nguoi');
+
+  // Chọn bằng chuột
+  list.querySelectorAll('.pick-i')[0].onclick();
+  eq(pk.value, '3', 'bam vao thi nhan dung ma nguoi');
+  ok(inp.value.indexOf('Nguyễn Văn Hùng') >= 0, 'o hien ten nguoi da chon');
+  ok(pk.el.classList.contains('co'), 'danh dau la da chon');
+
+  // Nút xoá
+  pk.el.querySelector('.pick-x').onclick();
+  eq(pk.value, '', 'bam dau nhan thi bo chon');
+
+  // Gõ không khớp ai
+  inp.onfocus(); inp.value = 'zzzz'; inp.oninput();
+  eq(list.querySelectorAll('.pick-i').length, 0, 'khong ai khop thi khong co muc nao');
+  ok(!!list.querySelector('.pick-empty'), 'bao khong tim thay');
+
+  // Đặt giá trị từ bên ngoài, dùng khi tự điền bạn đời
+  pk.value = '9';
+  eq(pk.value, '9', 'dat duoc gia tri tu ben ngoai');
+  ok(pk.el.querySelector('.pick-in').value.indexOf('Nguyễn Văn Trọng') >= 0, 'va hien dung ten');
+
+  // Giữ lại người đang chọn kể cả khi họ không còn hợp lý
+  var pk2 = A.personPicker('father', function () { return { selfId: '', year: 1900, gender: '', exclude: [] }; }, '16');
+  pk2.el.querySelector('.pick-in').onfocus();
+  var maCon = pk2.el.querySelectorAll('.pick-i').map(function (x) { return x.dataset.id; });
+  ok(maCon.indexOf('16') >= 0, 'nguoi dang chon van con trong danh sach du sinh sau ca tram nam');
 })();
 
 /* ---------- 11a. tệp CSV mẫu ---------- */
