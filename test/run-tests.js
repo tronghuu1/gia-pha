@@ -837,6 +837,54 @@ group('11c. Loc danh sach cha me vo chong');
   eq(ids(noYear.fit).length, nam, 'chua khai nam sinh thi moi nguoi nam deu duoc coi la phu hop');
 })();
 
+/* ---------- 11j. nạp lại không làm mất chỗ đang xem ---------- */
+group('11j. Nap lai giu nguyen cho dang xem');
+(function () {
+  A.State.didAutoFit = true;
+  A.unfoldAll();
+  A.setPeople(A.DEMO.map(A.normalize), 'demo');
+
+  // Người dùng đã kéo tới một chỗ nào đó
+  A.State.t = { x: -640, y: -180, k: 0.9 };
+  var neo = '9';
+  var truoc = A.State.pos.get(neo);
+  var man = { x: truoc.x * 0.9 - 640, y: truoc.y * 0.9 - 180 };
+
+  // Nạp lại đúng danh sách đó, có neo
+  A.setPeople(A.DEMO.map(A.normalize), 'demo', neo);
+  var sau = A.State.pos.get(neo);
+  var manSau = { x: sau.x * A.State.t.k + A.State.t.x, y: sau.y * A.State.t.k + A.State.t.y };
+  ok(Math.abs(manSau.x - man.x) < 0.01, 'nguoi vua sua khong xe ngang sau khi nap lai');
+  ok(Math.abs(manSau.y - man.y) < 0.01, 'khong xe doc');
+  eq(A.State.t.k, 0.9, 'giu nguyen muc thu phong');
+
+  // Thêm một người mới vào rồi nạp lại: cây dài ra nhưng chỗ neo vẫn đứng yên
+  var them = A.DEMO.concat([{ id: 'X9', name: 'Cháu Mới', gender: 'Nam', father: '16' }]);
+  A.setPeople(them.map(A.normalize), 'demo', neo);
+  var sau2 = A.State.pos.get(neo);
+  var manSau2 = { x: sau2.x * A.State.t.k + A.State.t.x, y: sau2.y * A.State.t.k + A.State.t.y };
+  ok(Math.abs(manSau2.x - man.x) < 0.01, 'them nguoi moi cung khong lam xe cho neo',
+     man.x.toFixed(1) + ' -> ' + manSau2.x.toFixed(1));
+  ok(A.State.pos.has('X9'), 'nguoi moi da co mat');
+  ok(A.State.people.length === 20, 'danh sach dai ra that su');
+
+  // Không truyền neo thì khung nhìn cũng không tự nhảy về gốc nữa
+  A.State.t = { x: -300, y: -100, k: 0.7 };
+  A.setPeople(A.DEMO.map(A.normalize), 'demo');
+  eq([A.State.t.x, A.State.t.y, A.State.t.k], [-300, -100, 0.7], 'khong neo thi giu nguyen khung nhin');
+
+  // Lần mở đầu tiên vẫn phải tự căn khung
+  A.State.didAutoFit = false;
+  A.State.t = { x: -300, y: -100, k: 0.7 };
+  A.setPeople(A.DEMO.map(A.normalize), 'demo');
+  ok(A.State.t.x !== -300 || A.State.t.y !== -100, 'lan dau mo van tu can khung nhin');
+
+  A.State.didAutoFit = true;
+  A.unfoldAll();
+  A.State.t = { x: 0, y: 0, k: 1 };
+  A.setPeople(A.DEMO.map(A.normalize), 'demo');
+})();
+
 /* ---------- 11i. ô chọn người có tìm kiếm ---------- */
 group('11i. O chon nguoi co tim kiem');
 (function () {

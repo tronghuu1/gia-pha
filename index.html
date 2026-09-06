@@ -2023,13 +2023,23 @@ function branchNames(){
 var ROLE_LABEL={quan_tri:"Quản trị",bien_tap:"Biên tập",nguoi_xem:"Chỉ xem"};
 
 /* ================== nạp dữ liệu ================== */
-function setPeople(list,source){
+function setPeople(list,source,neoId){
+  /* Nạp lại sau khi sửa hay thêm người thì phải giữ nguyên chỗ đang xem. Ghi
+     lấy vị trí trên màn hình của người vừa động tới, dựng xong đặt lại đúng
+     chỗ đó. Không neo thì khung nhìn nhảy về gốc cây. */
+  var k=State.t.k, neoTruoc=null;
+  if(neoId&&State.pos.has(neoId)){
+    var pv=State.pos.get(neoId);
+    neoTruoc={x:pv.x*k+State.t.x, y:pv.y*k+State.t.y};
+  }
+
   State.people=list; State.source=source;
   buildIndex();
 
   /* Lần mở đầu tiên: nếu cây rộng quá tầm đọc thì gập bớt nhánh sâu. Chỉ làm
      một lần, sau đó tôn trọng những gì người dùng đã tự mở hoặc gập. */
-  if(!State.didAutoFit && !Print.on){
+  var lanDau=!State.didAutoFit;
+  if(lanDau && !Print.on){
     State.didAutoFit=true;
     /* Ngưỡng rộng rãi: chỉ gập những nhánh làm cây phình quá mức, còn lại để
        người dùng kéo ngang. Gập sát quá thì mở lên chỉ thấy dăm người. */
@@ -2037,7 +2047,19 @@ function setPeople(list,source){
   }
 
   render(); computeBranches(); paintChi(); paintFocus();
-  initialView(); renderGio(); renderStats(); updateChrome();
+
+  if(lanDau){
+    initialView();
+  } else {
+    if(neoTruoc&&State.pos.has(neoId)){
+      var pn=State.pos.get(neoId);
+      State.t.x=neoTruoc.x-pn.x*k;
+      State.t.y=neoTruoc.y-pn.y*k;
+    }
+    applyT();
+  }
+
+  renderGio(); renderStats(); updateChrome();
   if(State.autoFoldFrom) showFoldBanner();
 }
 function showFoldBanner(){
@@ -2097,7 +2119,7 @@ function loadSheet(id,name){
         [{label:"Mở cài đặt",pri:true,fn:openSetup}]);
     });
 }
-function loadScript(){
+function loadScript(neoId){
   setBanner("Đang tải gia phả…");
   return Api.list().then(function(j){
     var people=(j.rows||[]).map(function(r){ var o=normalize(r); o._row=r._row; return o; });
@@ -2106,7 +2128,7 @@ function loadScript(){
     if(j.account) setSession(j.account);
     else if(Api.token){ saveToken(""); setSession(null); }
     setBanner("");
-    setPeople(people,"script");
+    setPeople(people,"script",neoId||State.sel);
     /* setPeople có thể đã đặt băng thông báo gập nhánh, chỉ đè lên khi thật
        sự có việc gấp hơn cần nói. */
     if(Session.needsSetup&&!loggedIn()){
@@ -3053,7 +3075,9 @@ function openPerson(id,preset){
       del.onclick=function(){
         if(!confirm("Xóa "+State.byId.get(id).name+" khỏi gia phả? Dữ liệu vẫn còn trong lịch sử phiên bản của Google Sheet.")) return;
         del.disabled=true;
-        Api.remove(id).then(function(){ close(); closeDrawer(); toast("Đã xóa."); return loadScript(); })
+        var q=State.byId.get(id);
+        var neo=q?(q.father||q.mother||Array.from(State.sp.get(id)||[])[0]||""):"";
+        Api.remove(id).then(function(){ close(); closeDrawer(); toast("Đã xóa."); return loadScript(neo); })
           .catch(function(e){ del.disabled=false; toast("Không xóa được: "+e.message); });
       };
       mf.appendChild(del);
@@ -3078,7 +3102,10 @@ function openPerson(id,preset){
       step.then(function(){ return Api.save(c.person); })
         .then(function(){
           close(); toast(id?"Đã lưu.":"Đã thêm vào gia phả.");
-          return loadScript().then(function(){ select(c.person.id,true); });
+          /* Sửa người có sẵn thì neo vào chính họ và đứng yên. Thêm người mới
+             thì neo vào cha mẹ để cây không xê, rồi đưa mắt tới người vừa thêm. */
+          var neo=id?c.person.id:(c.person.father||c.person.mother||State.sel);
+          return loadScript(neo).then(function(){ select(c.person.id,!!id); });
         })
         .catch(function(e){ ok.disabled=false; ok.textContent=id?"Lưu thay đổi":"Thêm vào gia phả"; toast("Không lưu được: "+e.message); });
     };
